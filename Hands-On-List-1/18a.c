@@ -1,12 +1,15 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to perform Record locking.
+/* 
+==========================================================================
+Name: 18a.c
+Author: Omkar Dhananjay Satav
+Description :  Write a program to perform Record locking.
                     a. Implement write lock
                     b. Implement read lock
                     Create three records in a file. Whenever you access a particular record, first lock it then modify/access
                     to avoid race condition.
- * */
-
+Date : 31th Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>  // For Standard Input Output Functions like printf().
 #include <fcntl.h>  // For opening a file - open().

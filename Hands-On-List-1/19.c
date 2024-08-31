@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to find out time taken to execute getpid system call. Use time stamp counter.
- * */
+/* 
+==========================================================================
+Name: 19.c
+Author: Omkar Dhananjay Satav
+Description :  Write a program to find out time taken to execute getpid system call. Use time stamp counter.
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 
 #include <stdio.h>  // For Standard Input Output Functions like printf().

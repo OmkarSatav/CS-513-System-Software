@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Find out the priority of your running program. Modify the priority with nice command.
- * */
-
+/* 
+==========================================================================
+Name: 20.c
+Author: Omkar Dhananjay Satav
+Description :  Find out the priority of your running program. Modify the priority with nice command.
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 #include <unistd.h> // For using nice() function.
 #include <stdio.h>  // For Standard Input Output Functions like printf().

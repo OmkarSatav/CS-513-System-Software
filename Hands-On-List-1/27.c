@@ -1,12 +1,16 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to execute ls -Rl by the following system calls
+/* 
+==========================================================================
+Name: 27.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to execute ls -Rl by the following system calls
                     a. execl
                     b. execlp
                     c. execle 
                     d. execv
                     e. execvp
- * */
+Date : 31st Aug, 2024
+===========================================================================
+*/
 
 
 #include<stdio.h> // For Standard Input Output Functions like printf() and scanf().

@@ -1,9 +1,12 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a simple program to execute in an infinite loop at the background. Go to /proc directory and identify all the process related information 
- * in the corresponding proc directory.
- * */
-
+/* 
+==========================================================================
+Name: 2.c
+Author: Omkar Dhananjay Satav
+Description : Write a simple program to execute in an infinite loop at the background. Go to /proc directory and
+              identify all the process related information in the corresponding proc directory.
+Date : 13th Aug, 2024
+===========================================================================
+*/
 
 int main(void){
 	for(1;1;1){} // Infinite loop

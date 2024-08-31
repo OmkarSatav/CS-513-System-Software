@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to get maximum and minimum real time priority.
- * */
-
+/* 
+==========================================================================
+Name: 28.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to get maximum and minimum real time priority.
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 #include <sched.h> // For scheduling functions like sched_get_priority_max() and sched_get_priority_min().
 #include <stdio.h> // For Standard Input Output Functions like printf().

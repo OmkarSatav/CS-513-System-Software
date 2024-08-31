@@ -1,9 +1,13 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to execute an executable program.
+/* 
+==========================================================================
+Name: 26.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to execute an executable program.
                     a. use some executable program
                     b. pass some input to an executable program. (for example execute an executable of $./a.out name)
-* */
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 
 #include <unistd.h> // For using execl() function.

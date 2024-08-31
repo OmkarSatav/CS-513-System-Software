@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to copy file1 into file2 ($cp file1 file2).
- * */
+/*
+==========================================================================
+Name: 7.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to copy file1 into file2 ($cp file1 file2).
+Date : 27th Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>   // Standard Input Output Functions.
 #include <fcntl.h>   // For file creation and opening - open()

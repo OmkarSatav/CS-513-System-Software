@@ -1,10 +1,13 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to find the type of a file.
+/* 
+==========================================================================
+Name: 14.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to find the type of a file.
                     a. Input should be taken from command line.
                     b. program should be able to identify any type of a file.
- * */
-
+Date : 31st Aug, 2024
+===========================================================================
+*/
 
 #include<stdio.h>    // For Standard Input Output Functions like printf(), scanf(), and perror().
 #include<unistd.h>   // For using functions like exit().

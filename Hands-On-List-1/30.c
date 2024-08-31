@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to run a script at a specific time using a Daemon process.
- * */
-
+/* 
+==========================================================================
+Name: 30.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to run a script at a specific time using a Daemon process.
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 #include <time.h>      // For time-related functions
 #include <stdio.h>     // For Standard Input Output Functions like printf.

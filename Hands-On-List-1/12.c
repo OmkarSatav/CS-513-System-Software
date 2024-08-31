@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to find out the opening mode of a file. Use fcntl.
- * */
+/* 
+==========================================================================
+Name: 12.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to find out the opening mode of a file. Use fcntl.
+Date : 31st Aug, 2024
+===========================================================================
+*/
 
 
 #include <fcntl.h>  // For using open() and fcntl().

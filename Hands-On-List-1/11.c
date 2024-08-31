@@ -1,13 +1,15 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: /* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to open a file, duplicate the file descriptor and append the file with both the
+/* 
+==========================================================================
+Name: 11.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to open a file, duplicate the file descriptor and append the file with both the
                     descriptors and check whether the file is updated properly or not.
                     a. use dup
                     b. use dup2
                     c. use fcntl
- * */
+Date : 20th Aug, 2024
+===========================================================================
+*/
 
 
 #include <stdio.h>   // For standard input output functions like printf().

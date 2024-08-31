@@ -1,8 +1,13 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to wait for a STDIN for 10 seconds using select. Write a proper print statement to
+/* 
+==========================================================================
+Name: 13.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to wait for a STDIN for 10 seconds using select. Write a proper print statement to
                     verify whether the data is available within 10 seconds or not (check in $man 2 select).
- * */
+Date : 31st Aug, 2024
+===========================================================================
+*/
+
 
 #include <stdio.h>   // For Standard Input Output Functions like printf() and perror().
 #include <stdlib.h>  // For using Standard library functions like exit().

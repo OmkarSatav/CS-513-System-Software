@@ -1,4 +1,15 @@
-// Question: Create a FIFO file using the `mkfifo` library function or `mknod` system call
+/* 
+==========================================================================
+Name: 1a.c
+Author: Omkar Dhananjay Satav
+Description : Create the following types of a files using (i) shell command (ii) system call
+                    a. soft link (symlink system call)
+                    b. hard link (link system call)
+                    c. FIFO (mkfifo Library Function or mknod system call)
+Date : 31st Aug, 2024
+===========================================================================
+*/
+
 
 #include <sys/types.h> // Import for `mkfifo` library function & `mknod` system call
 #include <sys/stat.h>  // Import for `mkfifo` library function & `mknod` system call

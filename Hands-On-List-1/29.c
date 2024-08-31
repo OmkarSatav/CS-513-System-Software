@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to get scheduling policy and modify the scheduling policy (SCHED_FIFO,SCHED_RR).
- * */
-
+/* 
+==========================================================================
+Name: 29.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to get scheduling policy and modify the scheduling policy (SCHED_FIFO,SCHED_RR).
+Date : 30th Aug, 2024
+===========================================================================
+*/
 
 #include <sched.h>     // For sched_getscheduler() and sched_setscheduler() functions.
 #include <sys/types.h> // For getprocessId datatype.

@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to create an orphan process.
- * */
-
+/* 
+==========================================================================
+Name: 24.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to create an orphan process.
+Date : 29th Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>      // For Standard Input Output Functions like printf() and perror().
 #include <unistd.h>     // For functions like fork()

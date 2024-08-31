@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to take input from STDIN and display on STDOUT. Use only read/write system calls
- * */
+/* 
+==========================================================================
+Name: 6.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to take input from STDIN and display on STDOUT. Use only read/write system calls
+Date : 13th Aug, 2024
+===========================================================================
+*/
 
 
 #include <unistd.h>  // read() and write() used fromm unistd for reading and writing content.

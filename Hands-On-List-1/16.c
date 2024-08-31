@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program, call fork and print the parent and child process id.
- * */
-
+/* 
+==========================================================================
+Name: 16.c
+Author: Omkar Dhananjay Satav
+Description :  Write a program, call fork and print the parent and child process id.
+Date : 28th Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>
 #include <fcntl.h>

@@ -1,8 +1,12 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to create five new files with infinite loop. Execute the program in the background and check the file 
- * descriptor table at /proc/pid/fd.
- * */
+/* 
+==========================================================================
+Name: 5.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to create five new files with infinite loop. Execute the program in the background
+              and check the file descriptor table at /proc/pid/fd.
+Date : 13th Aug, 2024
+===========================================================================
+*/
 
 
 #include <fcntl.h> // For file creation and opening - open()
@@ -22,17 +26,6 @@ int main() {
 
 /*
 
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment3$ gcc createFileAndDisplayFD.c 
-createFileAndDisplayFD.c: In function ‘main’:
-createFileAndDisplayFD.c:18:14: warning: assignment to ‘const char *’ from incompatible pointer type ‘int *’ [-Wincompatible-pointer-types]
-   18 |         file = argumentValues[1];  // Input file name from command line argument.
-      |              ^
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment3$ ls
- a.out                      origin.txt
- createFileAndDisplayFD.c  'Screenshot from 2024-08-27 14-31-29.png'
- Main.txt                  'Screenshot from 2024-08-27 14-31-58.png'
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment3$ ./a.out Main.txt 
-File descriptor value: 3omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment3$ cd ../Assignment5
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment5$ gcc infiniteFileOpeningCreation.c 
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment5$ ./a.out &
 [1] 28213

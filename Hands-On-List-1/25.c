@@ -1,8 +1,12 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to create three child processes. The parent should wait for a particular child (use
-                    waitpid system call).
- * */
+/* 
+==========================================================================
+Name: 25.c
+Author: Omkar Dhananjay Satav
+Description : Write a program to create three child processes. The parent should wait for a particular child (use
+              waitpid system call).
+Date : 31st Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>  // For using Standard Input Output Functions like printf().
 #include <unistd.h>  // For using fork(), getpid(), getppid(), and waitpid()

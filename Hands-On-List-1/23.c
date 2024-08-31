@@ -1,9 +1,12 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program, open a file, call fork, and then write to the file by both the child as well as the
-                    parent processes. Check output of the file.
- * */
-
+/* 
+==========================================================================
+Name: 23.c
+Author: Omkar Dhananjay Satav
+Description :  Write a program, open a file, call fork, and then write to the file by both the child as well as the
+               parent processes. Check output of the file.
+Date : 29th Aug, 2024
+===========================================================================
+*/
 
 #include <stdio.h>   // For Standard Input Output Operations like printf() and perror()
 #include <unistd.h>  // For writing content into the file -write()
