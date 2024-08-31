@@ -38,6 +38,7 @@ int main(int argumentCount, int *argumentValues[]) {
 
 
 /*
+
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment4$ gcc openFile.c 
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment4$ ./a.out
 File opened in read-write mode 4

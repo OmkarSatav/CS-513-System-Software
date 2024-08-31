@@ -52,4 +52,5 @@ Embrace the journey, for it's in the challenges that we find our true strength.
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment7$ cat readingFile.txt
 Embrace the journey, for it's in the challenges that we find our true strength.
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment7$ 
+
 */

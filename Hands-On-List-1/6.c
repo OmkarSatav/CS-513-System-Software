@@ -13,7 +13,7 @@ Date : 13th Aug, 2024
 int main() {
     const int buffSize = 1024;     // Size of buffer
     char buff[buffSize];           // Buffer to store input
-    int bytesRd;
+    int bytesRd;    
 
     
     bytesRd = read(STDIN_FILENO, buff, buffSize);  // Read input from standard input.
@@ -28,9 +28,13 @@ int main() {
 
 
 /*
+
+
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment6$ gcc inputOutput.c 
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment6$ ./a.out
 Wonderful day at IIITB
 Wonderful day at IIITB
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment6$
+
+
 */

@@ -31,3 +31,14 @@ int main() {
 
     return 0;
 }
+
+
+/*
+
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment28$ gcc minMaxPriority.c 
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment28$ ./a.out
+The maximum priority with First In First Out(FIFO) Scheduling Policy is: 99
+The minimum priority with First In First Out(FIFO) Scheduling Policy is: 1
+
+
+*/

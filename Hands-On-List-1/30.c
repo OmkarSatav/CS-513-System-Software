@@ -33,10 +33,7 @@ int main(int argumentCount, char *argumentValues[]) {
 
     deadlineEpoch = mktime(deadline);      // Convert deadline to epoch
 
-    // Daemon process waits until the deadline is met.
 
-
-    
     pid = fork();     // Create child process using fork().
 
     if (pid < 0) {     // fork() fails to create child process.
@@ -64,12 +61,20 @@ int main(int argumentCount, char *argumentValues[]) {
         {
             time(&crtEpoch);
         } while (difftime(deadlineEpoch, crtEpoch) > 0);
-
+        // Daemon process waits until the deadline is met.
 
         printf("Execute a script.");  // Execute the script at this moment.
 
     }
 
-   
     exit(0);
 }
+
+
+/*
+
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment30$ gcc runScript.c 
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment30$ ./a.out 22 48 0
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment30$ Execute a script.
+
+*/

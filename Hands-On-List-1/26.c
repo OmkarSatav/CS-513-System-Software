@@ -18,7 +18,7 @@ int main(int argumentCount, char *argumentValues[]) {
 
     if (argumentCount != 3){       // If command line input is not given, default file is created.
         exeFilePath = "../Assignment4/a.out";
-        fileName = "openFile.c";
+        fileName = "executeCode.c";
     }else{
         exeFilePath = argumentValues[1];  // Input file names from command line argument.
         fileName = argumentValues[2];
@@ -30,10 +30,9 @@ int main(int argumentCount, char *argumentValues[]) {
 
 /*
 
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment26$ gcc executeCode.c 
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment26$ gcc executeCode.c
 omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment26$ ./a.out
-File opened in read-write mode -1
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment26$ 
-
+File already existed.
+File opened in read-write mode 3
 
 */

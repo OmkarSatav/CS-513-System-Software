@@ -2,7 +2,9 @@
 ==========================================================================
 Name: 16.c
 Author: Omkar Dhananjay Satav
-Description :  Write a program, call fork and print the parent and child process id.
+Description :  Write a program to perform mandatory locking.
+                a. Implement write lock
+                b. Implement read lock
 Date : 28th Aug, 2024
 ===========================================================================
 */

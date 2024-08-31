@@ -2,69 +2,63 @@
 ==========================================================================
 Name: 23.c
 Author: Omkar Dhananjay Satav
-Description :  Write a program, open a file, call fork, and then write to the file by both the child as well as the
-               parent processes. Check output of the file.
+Description : Write a program to create a Zombie state of the running program.
 Date : 29th Aug, 2024
 ===========================================================================
 */
 
-#include <stdio.h>   // For Standard Input Output Operations like printf() and perror()
-#include <unistd.h>  // For writing content into the file -write()
-#include <fcntl.h>   // For opening a file - open()
-#include <string.h>  // For checking the length of string - strlen()
 
-int main(int argumentCount, char *argumentValues[]) {
-    int fileDescptr;
-    const char *file1;
+#include <stdio.h>      // For Standard Input Output Functions like printf() and perror().
+#include <unistd.h>     // For functions like fork()
+#include <sys/wait.h>   // For sleep() function
+#include <stdlib.h>     // For exit() function
 
+int main() {
+    int childPid;
 
-   if (argumentCount != 2){
-        file1 = "destination.txt";     // If command line input is not given, default file is created.
+    // Create a child process
+    childPid = fork();
+
+    if (childPid < 0) {
+        // Fork failed
+        perror("fork");
+        return 1;
+    }
+    else if (childPid == 0) {         // Child process control
         
-    }else{
-        file1 = argumentValues[1];  // Input file names from command line argument.
+        printf("Child process PID: %d is terminating now.\n", getpid());      // Child process id
+        exit(0);                           // Child exits immediately
+    }
+    else {                                // Parent process control
+        
+        printf("Parent process PID: %d is sleeping for 30 seconds. As child process completes its execution, it will wait for parent process. So that child can terminate. So child process becomes zombie.\n", getpid());
+        
+        sleep(30);  // Parent process sleeping for 30 seconds, so that child process can become zombie for that moment. 
+
+        printf("Parent process PID: %d finished sleeping.\n", getpid());
     }
 
-
-    fileDescptr = open(file1, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0764);
-    
-    if (fileDescptr < 0) {
-        perror("Error opening file");
-        return 1;
-    }
-
-    int prcId = fork();
-
-    if (prcId < 0) {
-        perror("Error during fork");
-        return 1;
-    }
-    else if (prcId == 0) {
-        char *childText = "--------------  Child process   -------------- \nA new process created by fork(), inheriting a copy of the parent process's memory and resources.\n\n";
-        write(fileDescptr, childText, strlen(childText));
-    }
-    else {
-        char *parentText = "-------------  Parent process  --------------- \nThe original process that creates a child process using fork(), receiving the child's PID and continuing execution alongside the child.\n";
-        write(fileDescptr, parentText, strlen(parentText));
-    }
-
-    close(fileDescptr);
     return 0;
 }
 
 
 
-
 /*
 
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment22$ gcc childParentWrite.c 
-omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment22$ ./a.out
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment23$ gcc zombieProcess.c 
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment23$ ./a.out
+Parent process PID: 18261 is sleeping for 30 seconds. As child process completes its execution, it will wait for parent process. So that child can terminate. So child process becomes zombie.
+Child process PID: 18262 is terminating now.
+Parent process PID: 18261 finished sleeping.
+omkar@omkar-TUF-Gaming-FX505GT-FX505GT:~/Documents/SoftwareSystems/HandsOnList1/Assignment23$ 
 
 
-destination.txt
--------------  Parent process  --------------- 
-The original process that creates a child process using fork(), receiving the child's PID and continuing execution alongside the child.
---------------  Child process   -------------- 
-A new process created by fork(), inheriting a copy of the parent process's memory and resources.
+
+Command --> ps aux
+omkar      18261  0.0  0.0   2616  1280 pts/2    S+   17:56   0:00 ./a.out
+omkar      18262  0.0  0.0      0     0 pts/2    Z+   17:56   0:00 [a.out] <defunct>
+
+status of child process (Z+) zombie
+
 
 */
