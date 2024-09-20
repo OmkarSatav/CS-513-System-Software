@@ -1,5 +1,5 @@
 /*======================================================================================================
-Name : 30d.c
+Name : 32d.c
 Author : Omkar Satav
 Description : Write a program to implement semaphore to protect any critical section.
               d. remove the created semaphore

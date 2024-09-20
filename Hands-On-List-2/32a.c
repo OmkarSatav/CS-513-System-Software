@@ -1,5 +1,5 @@
 /*======================================================================================================
-Name : 30a.c
+Name : 32a.c
 Author : Omkar Satav
 Description : Write a program to implement semaphore to protect any critical section.
               a. rewrite the ticket number creation program using semaphore

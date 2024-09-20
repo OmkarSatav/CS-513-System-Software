@@ -1,6 +1,6 @@
 
 /*======================================================================================================
-Name : 30b.c
+Name : 32b.c
 Author : Omkar Satav
 Description : Write a program to implement semaphore to protect any critical section.
               b. protect shared memory from concurrent write access

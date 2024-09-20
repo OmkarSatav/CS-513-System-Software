@@ -1,5 +1,5 @@
 /*======================================================================================================
-Name : 30c.c
+Name : 32c.c
 Author : Omkar Satav
 Description : Write a program to implement semaphore to protect any critical section.
               c. protect multiple pseudo resources ( may be two) using counting semaphore
