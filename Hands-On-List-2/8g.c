@@ -1,3 +1,9 @@
+/* Name: Omkar Dhananjay Satav
+ * Reg.No: MT2024106
+ * Problem Statement: Write a separate program using signal system call to catch the following signals.
+                        F. SIGPROF.
+ * */
+
 
 #include <stdio.h>      // For using Standard Input Output functions like printf().
 #include <signal.h>     // For using signal handling functions like signal().
