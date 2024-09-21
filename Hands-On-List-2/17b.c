@@ -1,3 +1,13 @@
+/*============================================================================
+Name : 17b.c
+Author : Omkar Satav
+Description :Write a program to execute ls -l | wc
+             b.Use dup2
+Date: 19th Sept, 2024.
+============================================================================
+*/
+
+
 #include <stdio.h>    // For using Standard Input Output Functions like printf().
 #include <unistd.h>   // For using pipe(), fork(), dup2(), execlp(), and close().
 #include <sys/wait.h> // For using wait().

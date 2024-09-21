@@ -1,35 +1,38 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
+/*============================================================================
+Name : 17c.c
+Author : Omkar Satav
+Description :Write a program to execute ls -l | wc
+             c.Use fcntl
+Date: 20th Sept, 2024.
+============================================================================
+*/
+
+
+#include <stdio.h>    // For using Standard Input Output Functions like printf().
+#include <unistd.h>   // For using pipe(), fork(), dup2(), execlp(), and close().
+#include <fcntl.h>    // For using fcntl() to manipulate file descriptors
+#include <sys/wait.h> // For using wait().
 
 int main() {
-    int fd[2];
-    pid_t pid1, pid2;
+    int filedescript[2];              // Array for pipe file descriptors
+    pipe(filedescript);               // Create a pipe
 
-    pipe(fd);  // Create a pipe
-
-    if ((pid1 = fork()) == 0) {  // First child (ls -l)
-        dup2(fd[1], STDOUT_FILENO);  // Redirect stdout to pipe
-        close(fd[0]);  // Close unused read end
-        close(fd[1]);  // Close original write end
-        execlp("ls", "ls", "-l", NULL);
-        perror("execlp ls");  // Error handling
-        return 1;
+    if (fork()) {           // Create a child process
+        close(0);           // Close standard input
+        close(filedescript[1]);       // Close the write end of the pipe
+        
+        fcntl(filedescript[0], F_DUPFD, 0);   // Duplicate read end of the file.
+        
+        execlp("wc", "wc", NULL);   // Execute 'wc'.
+    } else {
+        close(1);           // Close standard output
+        close(filedescript[0]);       // Close the read end of the pipe
+        
+     
+        fcntl(filedescript[1], F_DUPFD, 1);   // Duplicate write end of the file.
+        
+        execlp("ls", "ls", "-l", NULL);  // Execute 'ls -l'
     }
-
-    if ((pid2 = fork()) == 0) {  // Second child (wc)
-        dup2(fd[0], STDIN_FILENO);  // Redirect stdin to pipe
-        close(fd[0]);  // Close original read end
-        close(fd[1]);  // Close unused write end
-        execlp("wc", "wc", NULL);
-        perror("execlp wc");  // Error handling
-        return 1;
-    }
-
-    close(fd[0]);  // Close both ends in parent
-    close(fd[1]);
-    wait(NULL);  // Wait for both children
-    wait(NULL);
 
     return 0;
 }

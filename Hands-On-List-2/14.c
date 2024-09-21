@@ -1,9 +1,10 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a simple program to create a pipe, write to the pipe, read from pipe and display on
-                      the monitor.
- * */
-
+/*============================================================================
+Name : 14.c
+Author : Omkar Satav
+Description : Write a simple program to create a pipe, write to the pipe, read from pipe and display on the monitor.
+Date: 11th Sept, 2024.
+============================================================================
+*/
 
 #include <unistd.h>        // For using pipe(), read(), write() and close(). 
 #include <stdio.h>         // For using Standard Input Ouput Functions like printf(); 

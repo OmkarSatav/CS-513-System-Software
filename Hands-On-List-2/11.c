@@ -1,9 +1,12 @@
 
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to ignore a SIGINT signal then reset the default action of the SIGINT signal -
-                      use sigaction system call.
- * */
+/*============================================================================
+Name : 11.c
+Author : Omkar Satav
+Description : Write a program to ignore a SIGINT signal then reset the default 
+              action of the SIGINT signal - use sigaction system call.
+Date: 11th Sept, 2024.
+============================================================================
+*/
 
 
 #include <signal.h>     // For using signal(), SIG_INT and SIG_IGN.

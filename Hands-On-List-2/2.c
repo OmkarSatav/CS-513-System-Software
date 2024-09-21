@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to print the system resource limits. Use getrlimit system call.
- * */
+/*============================================================================
+Name : 2.c
+Author : Omkar Satav
+Description :Write a program to print the system resource limits. 
+             Use getrlimit system call.
+Date: 9th Sept, 2024.
+============================================================================
+*/
 
 
 #include <sys/resource.h>   // For using rlimit and getrlimit().

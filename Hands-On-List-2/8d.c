@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a separate program using signal system call to catch the following signals.
-                        D. SIGALRM (use alarm system call).
- * */
+/*============================================================================
+Name : 8d.c
+Author : Omkar Satav
+Description : Write a separate program using signal system call to catch the following signals.
+            d. SIGALRM (use alarm system call).
+Date: 17th Sept, 2024.
+============================================================================
+*/
 
 
 #include <stdio.h>   // For using Standard Input Output functions like printf().

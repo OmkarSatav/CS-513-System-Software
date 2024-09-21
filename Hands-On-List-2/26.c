@@ -3,7 +3,7 @@ Name : 26.c
 Author : Omkar Satav
 Description : Write a program to send messages to the message queue. Check $ipcs -q.
 Date: 19th Sept, 2024.
-============================================================================
+==============================================================================
 */
 
 

@@ -1,7 +1,10 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a simple program to send some data from parent to the child process.
- * */
+/*============================================================================
+Name : 15.c
+Author : Omkar Satav
+Description :Write a simple program to send some data from parent to the child process.
+Date: 11th Sept, 2024.
+============================================================================
+*/
 
 
 #include <unistd.h>        // For using pipe(), read(), write() and close(). 

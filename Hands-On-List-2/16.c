@@ -1,7 +1,10 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a simple program to send some data from parent to the child process.
- * */
+/*============================================================================
+Name : 16.c
+Author : Omkar Satav
+Description :Write a program to send and receive data from parent to child vice versa. Use two way communication.
+Date: 12th Sept, 2024.
+============================================================================
+*/
 
 
 #include <unistd.h>        // For using pipe(), read(), write() and close(). 

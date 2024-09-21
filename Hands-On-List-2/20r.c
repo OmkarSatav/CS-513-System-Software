@@ -1,7 +1,10 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write two programs so that both can communicate by FIFO - Use one way communication.
- * */
+/*============================================================================
+Name : 20r.c
+Author : Omkar Satav
+Description : Write two programs so that both can communicate by FIFO - Use one way communication.
+Date: 12th Sept, 2024.
+============================================================================
+*/
 
 
 #include <fcntl.h>         // For using open() and O_RDONLY.

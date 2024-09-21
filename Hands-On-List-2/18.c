@@ -1,8 +1,12 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to find out total number of directories on the pwd.
-                      execute ls -l | grep ^d | wc ? Use only dup2.
- * */
+/*============================================================================
+Name : 18.c
+Author : Omkar Satav
+Description :Write a program to find out total number of directories on the pwd. 
+             Execute ls -l | grep ^d | wc. Use only dup2.
+Date: 12th Sept, 2024.
+============================================================================
+*/
+
 
 #include <unistd.h>    // For using fork(), pipe(), dup2(), and execlp().
 

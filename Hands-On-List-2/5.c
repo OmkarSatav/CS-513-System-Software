@@ -1,14 +1,17 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to print the system limitation of 
- *                      a. maximum length of the arguments to the exec family of functions.
-                        b. maximum number of simultaneous process per user id.
-                        c. number of clock ticks (jiffy) per second.
-                        d. maximum number of open files
-                        e. size of a page
-                        f. total number of pages in the physical memory
-                        g. number of currently available pages in the physical memory.
- * */
+/*============================================================================
+Name : 5.c
+Author : Omkar Satav
+Description :Write a program to print the system limitation of 
+    a. Maximum length of the arguments to the exec family of functions. 
+    b. Maximum number of simultaneous process per user id. 
+    c. Number of clock ticks (jiffy) per second. 
+    d. Maximum number of open files 
+    e. Size of a page 
+    f. Total number of pages in the physical memory 
+    g. Number of  currently available pages in the physical memory.
+Date: 17th Sept, 2024.
+============================================================================
+*/
 
 
 #include <stdio.h>         // For using Standard Input Output functions like printf.

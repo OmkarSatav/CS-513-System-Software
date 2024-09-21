@@ -4,7 +4,9 @@ Author : Omkar Satav
 Description : Write a separate program using sigaction system call to catch the following signals. 
               a. SIGSEGV (Segmentation Fault)
 Date: 20th Sept, 2024.
-============================================================================*/
+============================================================================
+*/
+
 
 #include <stdio.h>   // For using Standard Input Output Functions like printf().
 #include <signal.h>  // For using sigaction() 

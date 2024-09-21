@@ -1,8 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to measure how much time is taken to execute 100 getppid () system call. 
- *                    Use time stamp counter.
- * */
+/*============================================================================
+Name : 4.c
+Author : Omkar Satav
+Description :Write a program to measure how much time is taken to execute 100 getppid() system call. 
+             Use time stamp counter.
+Date: 9th Sept, 2024.
+============================================================================
+*/
 
 
 #include <stdio.h>          // For using Standard Input Output Functions like printf().

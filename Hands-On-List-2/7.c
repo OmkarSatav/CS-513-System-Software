@@ -1,7 +1,10 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a simple program to print the created thread ids.
- * */
+/*============================================================================
+Name : 7.c
+Author : Omkar Satav
+Description : Write a simple program to print the created thread IDs.
+Date: 10th Sept, 2024.
+============================================================================
+*/
 
 
 #include <pthread.h>        //  For using thread functions like pthread_create(), pthread_join(), pthread_self() and pthread_t. 

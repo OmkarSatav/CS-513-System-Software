@@ -1,12 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a separate program (for each time domain) to set a interval timer in 10sec and
-                      10micro second
-                        b. ITIMER_VIRTUAL
- * */
-
-
-
+/*============================================================================
+Name : 1b.c
+Author : Omkar Satav
+Description :Write a separate program (for each time domain) to set a interval timer in 10s and 10ms 
+             b. ITIMER_VIRTUAL
+Date: 17th Sept, 2024.
+============================================================================
+*/
 
 #include <stdio.h>      // For using Standard Input Output Functions like printf().
 #include <sys/time.h>   // For using itimerval and setitimer().

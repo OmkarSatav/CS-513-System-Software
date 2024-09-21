@@ -1,11 +1,12 @@
 /*============================================================================
-Name        : 10c.c
-Author      : Omkar Satav
+Name : 10c.c
+Author : Omkar Satav
 Description : Write a separate program using sigaction system call to catch the following signals. 
               c. SIGFPE
-Date        : 20th Sept, 2024.
+Date : 20th Sept, 2024.
 ============================================================================
 */
+
 
 #include <stdio.h>
 #include <signal.h>

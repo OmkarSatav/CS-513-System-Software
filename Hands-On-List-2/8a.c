@@ -1,9 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a separate program using signal system call to catch the following signals.
-                        a. SIGSEGV
- * */
-
+/*============================================================================
+Name : 8a.c
+Author : Omkar Satav
+Description : Write a separate program using signal system call to catch the following signals.
+            a.SIGSEGV
+Date: 17th Sept, 2024.
+============================================================================
+*/
 
 #include <stdio.h>   // For using Standard Input Output functions like printf().
 #include <signal.h>  // For using signal handling functions like signal().

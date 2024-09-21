@@ -1,7 +1,11 @@
-/* Name: Omkar Dhananjay Satav
- * Reg.No: MT2024106
- * Problem Statement: Write a program to set (any one) system resource limit. Use setrlimit system call.
- * */
+/*============================================================================
+Name : 3.c
+Author : Omkar Satav
+Description :Write a program to set (any one) system resource limit. Use setrlimit system call.
+Date: 9th Sept, 2024.
+============================================================================
+*/
+
 
 #include <sys/resource.h>   // For using rlimit, getrlimit() and setrlimit().
 #include <stdio.h>          // For using Standard Input Output Functions like printf() and perror().
