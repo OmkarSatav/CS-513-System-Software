@@ -19,15 +19,17 @@ int main() {
 
     if ((prcId = fork()) == 0) {          // Fork the first child to run 'ls -l'
         close(fd[0]);                     // Close the unused read end of the pipe
-        dup2(fd[1], STDOUT_FILENO);       // Redirect stdout to the write end of the pipe
-        close(fd[1]);                     // Close the original write end after duplicating
+        close(STDOUT_FILENO);            
+        dup(fd[1]);                       // Redirect stdout to the write end of the pipe
+        close(fd[1]);                   
         execlp("ls", "ls", "-l", NULL);   // Execute 'ls -l'
     }
 
     if ((prcId2 = fork()) == 0) {         // Fork the second child to run 'wc'
         close(fd[1]);                     // Close unused write end of the pipe
-        dup2(fd[0], STDIN_FILENO);        // Redirect stdin to the read end of the pipe
-        close(fd[0]);                     // Close the original read end after duplicating
+        close(STDIN_FILENO);     
+        dup(fd[0]);                       // Link the stdin to the read end of the pipe
+        close(fd[0]);                     
         execlp("wc", "wc", NULL);         // Execute 'wc'
     }
 
