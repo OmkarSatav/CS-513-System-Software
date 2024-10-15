@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "admin.h": "c",
+        "transaction.h": "c",
+        "server-constants.h": "c",
+        "customer.h": "c",
+        "account.h": "c"
+    }
+}
