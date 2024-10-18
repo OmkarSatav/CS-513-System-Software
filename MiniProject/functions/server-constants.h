@@ -81,7 +81,7 @@
 #define CUSTOMER_LOGOUT "Logging you out now dear customer! Good bye!$"
 
 // ADMIN MENU
-#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\nPress any other key to logout"
+#define CUSTOMER_MENU "1. Get Customer Details\n2. Deposit Money\n3. Withdraw Money\n4. Get Balance\n5. Get Transaction information\n6. Change Password\n7. Transfer Funds\nPress any other key to logout"
 
 #define ACCOUNT_DEACTIVATED "It seems your account has been deactivated!^"
 
@@ -105,6 +105,7 @@
 
 #define ACCOUNT_FILE "./records/account.bank"
 #define CUSTOMER_FILE "./records/customer.bank"
+#define EMPLOYEE_FILE "./records/employee.bank"
 #define TRANSACTION_FILE "./records/transactions.bank"
 
 #endif

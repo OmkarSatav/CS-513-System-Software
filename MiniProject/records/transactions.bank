@@ -1,0 +1,90 @@
+Account ID: 5
+Details of transaction:
+	Date: 16:55 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 542
+		After: 442
+		Difference: -100
+
+Account ID: 2
+Details of transaction:
+	Date: 16:55 18/10/2024
+	Operation: Deposit
+	Balance -
+		Before: 440
+		After: 540
+		Difference: 100
+
+Account ID: 5
+Details of transaction:
+	Date: 16:57 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 442
+		After: 405
+		Difference: -37
+
+Account ID: 2
+Details of transaction:
+	Date: 16:57 18/10/2024
+	Operation: Deposit
+	Balance -
+		Before: 540
+		After: 577
+		Difference: 37
+
+Account ID: 5
+Details of transaction:
+	Date: 16:57 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 405
+		After: 395
+		Difference: -10
+
+Account ID: 2
+Details of transaction:
+	Date: 16:57 18/10/2024
+	Operation: Deposit
+	Balance -
+		Before: 577
+		After: 587
+		Difference: 10
+
+Account ID: 9
+Details of transaction:
+	Date: 18:10 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 988
+		After: 1088
+		Difference: 100
+
+Account ID: 9
+Details of transaction:
+	Date: 18:11 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 1088
+		After: 988
+		Difference: -100
+
+Account ID: 5
+Details of transaction:
+	Date: 18:18 18/10/2024
+	Operation: Withdraw
+	Balance -
+		Before: 395
+		After: 385
+		Difference: -10
+
+Account ID: 9
+Details of transaction:
+	Date: 18:18 18/10/2024
+	Operation: Deposit
+	Balance -
+		Before: 988
+		After: 998
+		Difference: 10
+

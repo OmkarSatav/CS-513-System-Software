@@ -3,6 +3,7 @@
 
 #include "./common.h"
 #include "./server-constants.h"
+#include "../recordtypes/employee.h"
 // Function Prototypes =================================
 
 bool admin_operation_handler(int connFD);
@@ -10,6 +11,176 @@ bool add_account(int connFD);
 int add_customer(int connFD, bool isPrimary, int newAccountNumber);
 bool delete_account(int connFD);
 bool modify_customer_info(int connFD);
+int add_employee(int connFD);
+
+
+
+
+bool modify_employee_info(int connFD) {
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000];
+    struct Employee employee;
+    int employeeID;
+    off_t offset;
+
+    // Ask for Employee ID
+    writeBytes = write(connFD, "Enter the Employee ID to modify: ", 34);    
+    if (writeBytes == -1) {
+        perror("Error while writing message to client!");
+        return false;
+    }
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error while reading employee ID from client!");
+        return false;
+    }
+
+    employeeID = atoi(readBuffer);
+
+    int employeeFileDescriptor = open(EMPLOYEE_FILE, O_RDONLY);
+    if (employeeFileDescriptor == -1) {
+        perror("Employee File doesn't exist");
+        return false;
+    }
+
+    offset = lseek(employeeFileDescriptor, employeeID * sizeof(struct Employee), SEEK_SET);
+    if (offset == -1) {
+        perror("Error while seeking to required employee record!");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
+
+    // Lock the record to be read
+    int lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1) {
+        perror("Couldn't obtain lock on employee record!");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    readBytes = read(employeeFileDescriptor, &employee, sizeof(struct Employee));
+    if (readBytes == -1) {
+        perror("Error while reading employee record from the file!");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    // Unlock the record
+    lock.l_type = F_UNLCK;
+    fcntl(employeeFileDescriptor, F_SETLK, &lock);
+
+    close(employeeFileDescriptor);
+
+    // Send modification options
+    writeBytes = write(connFD, "Modify Employee Menu:\n1. Name\n2. Age\n3. Gender\nChoose an option: ", 78);
+    if (writeBytes == -1) {
+        perror("Error while writing modify menu to client!");
+        return false;
+    }
+
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error while getting modification choice from client!");
+        return false;
+    }
+
+    int choice = atoi(readBuffer);
+    bzero(readBuffer, sizeof(readBuffer));
+
+    switch (choice) {
+    case 1:
+        writeBytes = write(connFD, "Enter new name: ", 16);
+        if (writeBytes == -1) {
+            perror("Error while writing new name prompt to client!");
+            return false;
+        }
+        readBytes = read(connFD, employee.name, sizeof(employee.name));
+        if (readBytes == -1) {
+            perror("Error while getting response for employee's new name from client!");
+            return false;
+        }
+        break;
+    case 2:
+        writeBytes = write(connFD, "Enter new age: ", 15);
+        if (writeBytes == -1) {
+            perror("Error while writing new age prompt to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error while getting response for employee's new age from client!");
+            return false;
+        }
+        employee.age = atoi(readBuffer);
+        break;
+    case 3:
+        writeBytes = write(connFD, "Enter new gender (M/F/O): ", 26);
+        if (writeBytes == -1) {
+            perror("Error while writing new gender prompt to client!");
+            return false;
+        }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error while getting response for employee's new gender from client!");
+            return false;
+        }
+        employee.gender = readBuffer[0];
+        break;
+    default:
+        writeBytes = write(connFD, "Invalid choice!\n", 16);
+        if (writeBytes == -1) {
+            perror("Error while sending invalid choice message to client!");
+            return false;
+        }
+        return false;
+    }
+
+    // Open the employee file to write the updated record
+    employeeFileDescriptor = open(EMPLOYEE_FILE, O_WRONLY);
+    if (employeeFileDescriptor == -1) {
+        perror("Error while opening employee file");
+        return false;
+    }
+    
+    offset = lseek(employeeFileDescriptor, employeeID * sizeof(struct Employee), SEEK_SET);
+    if (offset == -1) {
+        perror("Error while seeking to required employee record!");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    lock.l_type = F_WRLCK;
+    lock.l_start = offset;
+    lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
+    if (lockingStatus == -1) {
+        perror("Error while obtaining write lock on employee record!");
+        return false;
+    }
+
+    writeBytes = write(employeeFileDescriptor, &employee, sizeof(struct Employee));
+    if (writeBytes == -1) {
+        perror("Error while writing updated employee info into file");
+    }
+
+    lock.l_type = F_UNLCK;
+    fcntl(employeeFileDescriptor, F_SETLK, &lock);
+
+    close(employeeFileDescriptor);
+
+    writeBytes = write(connFD, "Employee information modified successfully!", 40);
+    if (writeBytes == -1) {
+        perror("Error while sending success message to client!");
+        return false;
+    }
+    return true;
+}
+
+
+
+
 
 // =====================================================
 
@@ -49,6 +220,7 @@ bool admin_operation_handler(int connFD)
             switch (choice)
             {
             case 1:
+                
                 get_customer_details(connFD, -1);
                 break;
             case 2:
@@ -66,6 +238,11 @@ bool admin_operation_handler(int connFD)
             case 6:
                 modify_customer_info(connFD);
                 break;
+            case 7:
+                add_employee(connFD);
+                break;
+            case 8:
+                modify_employee_info(connFD);
             default:
                 writeBytes = write(connFD, ADMIN_LOGOUT, strlen(ADMIN_LOGOUT));
                 return false;
@@ -79,6 +256,8 @@ bool admin_operation_handler(int connFD)
     }
     return true;
 }
+
+
 
 bool add_account(int connFD)
 {
@@ -148,7 +327,6 @@ bool add_account(int connFD)
         return false;
     }
 
-    printf("Debug: readBuffer = %s\n", readBuffer);
     newAccount.isRegularAccount = atoi(readBuffer) == 1 ? true : false;
 
 
@@ -192,31 +370,28 @@ bool add_account(int connFD)
 
 
 
-
 int add_customer(int connFD, bool isPrimary, int newAccountNumber)
 {
     ssize_t readBytes, writeBytes;
     char readBuffer[1000], writeBuffer[1000];
 
     struct Customer newCustomer, previousCustomer;
-    printf("\nHello opening file before");
-    int customerFileDescriptor = open(CUSTOMER_FILE, O_RDONLY);
-    printf("\nHello opening file");
+
+    // Open customer file to retrieve last customer ID or create a new customer
+    int customerFileDescriptor = open(CUSTOMER_FILE, O_RDONLY );
     if (customerFileDescriptor == -1 && errno == ENOENT)
     {
-        printf("\nHello opening file 1");
         // Customer file was never created
         newCustomer.id = 0;
     }
     else if (customerFileDescriptor == -1)
     {
-        printf("\nHello opening file 2");
         perror("Error while opening customer file");
         return -1;
     }
     else
     {
-        printf("\nHello opening file");
+        // Seek to the last customer record and read it to determine the next customer ID
         int offset = lseek(customerFileDescriptor, -sizeof(struct Customer), SEEK_END);
         if (offset == -1)
         {
@@ -247,18 +422,21 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
         newCustomer.id = previousCustomer.id + 1;
     }
 
+    // Send prompt for customer name
     if (isPrimary)
         sprintf(writeBuffer, "%s%s", ADMIN_ADD_CUSTOMER_PRIMARY, ADMIN_ADD_CUSTOMER_NAME);
     else
         sprintf(writeBuffer, "%s%s", ADMIN_ADD_CUSTOMER_SECONDARY, ADMIN_ADD_CUSTOMER_NAME);
 
-    writeBytes = write(connFD, writeBuffer, sizeof(writeBuffer));
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1)
     {
         perror("Error writing ADMIN_ADD_CUSTOMER_NAME message to client!");
         return false;
     }
 
+    // Read customer name from client
+    bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1)
     {
@@ -268,6 +446,7 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
 
     strcpy(newCustomer.name, readBuffer);
 
+    // Send prompt for customer gender
     writeBytes = write(connFD, ADMIN_ADD_CUSTOMER_GENDER, strlen(ADMIN_ADD_CUSTOMER_GENDER));
     if (writeBytes == -1)
     {
@@ -275,6 +454,7 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
         return false;
     }
 
+    // Read customer gender from client
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1)
@@ -283,24 +463,26 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
         return false;
     }
 
+    // Validate gender input
     if (readBuffer[0] == 'M' || readBuffer[0] == 'F' || readBuffer[0] == 'O')
         newCustomer.gender = readBuffer[0];
     else
     {
         writeBytes = write(connFD, ADMIN_ADD_CUSTOMER_WRONG_GENDER, strlen(ADMIN_ADD_CUSTOMER_WRONG_GENDER));
-        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
         return false;
     }
 
+    // Send prompt for customer age
     bzero(writeBuffer, sizeof(writeBuffer));
-    strcpy(writeBuffer, ADMIN_ADD_CUSTOMER_AGE);
+    strcpy(writeBuffer, "What is the age of the customer? ");
     writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1)
     {
-        perror("Error writing ADMIN_ADD_CUSTOMER_AGE message to client!");
+        perror("Error writing age prompt to client!");
         return false;
     }
 
+    // Read age from client
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1)
@@ -309,43 +491,47 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
         return false;
     }
 
-    // Use strtol for better input validation
+    // Validate age input
     char *endptr;
     long customerAge = strtol(readBuffer, &endptr, 10);
+    if (endptr == readBuffer || *endptr != '\0' || customerAge <= 0 || customerAge > 150)
+    {
+        printf("Invalid age received: %ld\n", customerAge);
+        return false;
+    }
+    newCustomer.age = (int)customerAge;
 
-    if (endptr == readBuffer || *endptr != '\0' || customerAge <= 0 || customerAge > 150) {
-        // Input was not a valid number, or out of valid range
-        printf("\nIssue at age - %ld", customerAge);
-        bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, ERRON_INPUT_FOR_NUMBER);
-        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-        if (writeBytes == -1)
-        {
-            perror("Error while writing ERRON_INPUT_FOR_NUMBER message to client!");
-            return false;
-        }
-
-        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    // Send prompt for customer password
+    bzero(writeBuffer, sizeof(writeBuffer));
+    strcpy(writeBuffer, "Enter the password: ");
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    if (writeBytes == -1)
+    {
+        perror("Error writing password prompt to client!");
         return false;
     }
 
-    // Continue with processing customerAge
-    printf("Valid customer age received: %ld\n", customerAge);
+    // Read password from client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1)
+    {
+        perror("Error reading password response from client!");
+        return false;
+    }
 
-    newCustomer.age = customerAge;
+    strcpy(newCustomer.password, readBuffer);
 
-    printf("Checking details");
+    // Set additional customer details
     newCustomer.account = newAccountNumber;
 
+    // Generate login ID based on customer name and ID
     strcpy(newCustomer.login, newCustomer.name);
     strcat(newCustomer.login, "-");
     sprintf(writeBuffer, "%d", newCustomer.id);
-    printf(newCustomer.id);
     strcat(newCustomer.login, writeBuffer);
 
-
-    strcpy(newCustomer.password, AUTOGEN_PASSWORD);
-
+    // Write customer record to file
     customerFileDescriptor = open(CUSTOMER_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRWXU);
     if (customerFileDescriptor == -1)
     {
@@ -357,16 +543,15 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
     if (writeBytes == -1)
     {
         perror("Error while writing Customer record to file!");
-        close(customerFileDescriptor); // Always ensure proper cleanup
+        close(customerFileDescriptor);
         return false;
     }
 
-    close(customerFileDescriptor); // Close the file after writing
+    close(customerFileDescriptor);  // Close the file after writing
 
-
-
+    // Send generated login ID and password to the client
     bzero(writeBuffer, sizeof(writeBuffer));
-    sprintf(writeBuffer, "%s%s-%d\n%s%s", ADMIN_ADD_CUSTOMER_AUTOGEN_LOGIN, newCustomer.name, newCustomer.id, ADMIN_ADD_CUSTOMER_AUTOGEN_PASSWORD, AUTOGEN_PASSWORD);
+    sprintf(writeBuffer, "%s%s-%d\n%s%s", ADMIN_ADD_CUSTOMER_AUTOGEN_LOGIN, newCustomer.name, newCustomer.id, ADMIN_ADD_CUSTOMER_AUTOGEN_PASSWORD, newCustomer.password);
     strcat(writeBuffer, "^");
     writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1)
@@ -375,10 +560,12 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber)
         return false;
     }
 
-    readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    // Dummy read to acknowledge completion
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));  // Dummy read
 
     return newCustomer.id;
 }
+
 
 bool delete_account(int connFD)
 {
@@ -518,6 +705,11 @@ bool delete_account(int connFD)
 
     return true;
 }
+
+
+
+
+
 
 bool modify_customer_info(int connFD)
 {
@@ -756,5 +948,162 @@ bool modify_customer_info(int connFD)
 
     return true;
 }
+
+
+
+
+
+
+int add_employee(int connFD) {
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000];
+    struct Employee newEmployee;
+
+    // Open employee file to retrieve last employee ID or create a new employee
+    int employeeFileDescriptor = open(EMPLOYEE_FILE, O_RDONLY);
+    if (employeeFileDescriptor == -1 && errno == ENOENT) {
+        // Employee file was never created
+        newEmployee.id = 0;
+    } else if (employeeFileDescriptor == -1) {
+        perror("Error while opening employee file");
+        return -1;
+    } else {
+        // Seek to the last employee record and read it to determine the next employee ID
+        int offset = lseek(employeeFileDescriptor, -sizeof(struct Employee), SEEK_END);
+        if (offset == -1) {
+            perror("Error seeking to last employee record!");
+            return -1;
+        }
+
+        struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
+        int lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
+        if (lockingStatus == -1) {
+            perror("Error obtaining read lock on employee record!");
+            return -1;
+        }
+
+        readBytes = read(employeeFileDescriptor, &newEmployee, sizeof(struct Employee));
+        if (readBytes == -1) {
+            perror("Error while reading employee record from file!");
+            return -1;
+        }
+
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+
+        close(employeeFileDescriptor);
+
+        newEmployee.id = newEmployee.id + 1;
+    }
+
+    // Send prompt for employee name
+    writeBytes = write(connFD, "Enter the employee name: ", 25);
+    if (writeBytes == -1) {
+        perror("Error writing employee name prompt to client!");
+        return -1;
+    }
+
+    // Read employee name from client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading employee name from client!");
+        return -1;
+    }
+    strcpy(newEmployee.name, readBuffer);
+
+    // Send prompt for employee gender
+    writeBytes = write(connFD, "Enter the employee gender (M/F/O): ", 36);
+    if (writeBytes == -1) {
+        perror("Error writing employee gender prompt to client!");
+        return -1;
+    }
+
+    // Read employee gender from client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading employee gender from client!");
+        return -1;
+    }
+    newEmployee.gender = readBuffer[0];
+
+    // Send prompt for employee age
+    writeBytes = write(connFD, "Enter the employee age: ", 25);
+    if (writeBytes == -1) {
+        perror("Error writing employee age prompt to client!");
+        return -1;
+    }
+
+    // Read employee age from client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading employee age from client!");
+        return -1;
+    }
+    newEmployee.age = atoi(readBuffer);
+
+    // Send prompt for employee password
+    writeBytes = write(connFD, "Enter the password: ", 20);
+    if (writeBytes == -1) {
+        perror("Error writing password prompt to client!");
+        return -1;
+    }
+
+    // Read password from client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading password from client!");
+        return -1;
+    }
+    strcpy(newEmployee.password, readBuffer);
+
+    // Set employee type
+    writeBytes = write(connFD, "Enter employee type (1 for Manager, 2 for Bank Employee): ", 58);
+    if (writeBytes == -1) {
+        perror("Error writing employee type prompt to client!");
+        return -1;
+    }
+
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading employee type from client!");
+        return -1;
+    }
+    newEmployee.employeeType = atoi(readBuffer);
+
+    // Write employee record to file
+    employeeFileDescriptor = open(EMPLOYEE_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRWXU);
+    if (employeeFileDescriptor == -1) {
+        perror("Error while creating / opening employee file!");
+        return -1;
+    }
+
+    writeBytes = write(employeeFileDescriptor, &newEmployee, sizeof(newEmployee));
+    if (writeBytes == -1) {
+        perror("Error while writing employee record to file!");
+        close(employeeFileDescriptor);
+        return -1;
+    }
+
+    close(employeeFileDescriptor); // Close the file after writing
+
+    // Send success message
+    writeBytes = write(connFD, "Employee added successfully!", 28);
+    if (writeBytes == -1) {
+        perror("Error sending success message to client!");
+        return -1;
+    }
+
+    return newEmployee.id;
+}
+
+
+
+
+
 
 #endif

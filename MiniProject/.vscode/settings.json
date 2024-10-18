@@ -4,6 +4,7 @@
         "transaction.h": "c",
         "server-constants.h": "c",
         "customer.h": "c",
-        "account.h": "c"
+        "account.h": "c",
+        "employee.h": "c"
     }
 }

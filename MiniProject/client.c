@@ -60,7 +60,7 @@ void connection_handler(int sockFD)
             // Skip read from client
             strncpy(tempBuffer, readBuffer, strlen(readBuffer) - 1);
             printf("%s\n", tempBuffer);
-            writeBytes = write(sockFD, "^", strlen("^"));
+            writeBytes = write(sockFD, "^", strlen("^"));//dummy write
             if (writeBytes == -1)
             {
                 perror("Error while writing to client socket!");
