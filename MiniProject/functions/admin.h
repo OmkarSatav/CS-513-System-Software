@@ -12,8 +12,9 @@ int add_customer(int connFD, bool isPrimary, int newAccountNumber);
 bool delete_account(int connFD);
 bool modify_customer_info(int connFD);
 int add_employee(int connFD);
-
-
+bool modify_employee_role(int connFD);
+bool find_employee_by_id(int employeeId, struct Employee *employee);
+bool update_employee_role(int employeeId, int newRole);
 
 
 bool modify_employee_info(int connFD) {
@@ -243,6 +244,8 @@ bool admin_operation_handler(int connFD)
                 break;
             case 8:
                 modify_employee_info(connFD);
+            case 9:
+                modify_employee_role(connFD);
             default:
                 writeBytes = write(connFD, ADMIN_LOGOUT, strlen(ADMIN_LOGOUT));
                 return false;
@@ -954,6 +957,7 @@ bool modify_customer_info(int connFD)
 
 
 
+// Function to add employee details
 int add_employee(int connFD) {
     ssize_t readBytes, writeBytes;
     char readBuffer[1000], writeBuffer[1000];
@@ -1092,13 +1096,169 @@ int add_employee(int connFD) {
     close(employeeFileDescriptor); // Close the file after writing
 
     // Send success message
-    writeBytes = write(connFD, "Employee added successfully!", 28);
+    writeBytes = write(connFD, "Employee added successfully!\n^", 30);
     if (writeBytes == -1) {
         perror("Error sending success message to client!");
         return -1;
     }
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+
+    // Print employee details to the client
+    int writtenBytes = snprintf(writeBuffer, sizeof(writeBuffer),
+                "\nEmployee Details:\n"
+                "ID: %d\n"
+                "Name: %s\n"
+                "Gender: %c\n"
+                "Age: %d\n"
+                "Login: %s-%d\n"
+                "Password: %s\n"
+                "Employee Type: %d (1: Manager, 2: Bank Employee)\n",
+                newEmployee.id, newEmployee.name, newEmployee.gender, newEmployee.age,
+                newEmployee.name, newEmployee.id, newEmployee.password, newEmployee.employeeType);
+
+    // Check if snprintf truncated the output
+    if (writtenBytes >= sizeof(writeBuffer)) {
+        fprintf(stderr, "Error: Buffer overflow, data was truncated!\n");
+        return -1;
+    }
+
+    // // Append the termination character '^'
+    strcat(writeBuffer, "^");
+
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    if (writeBytes == -1) {
+        perror("Error sending employee details to client!");
+        return -1;
+    }
+
+    // Dummy read from the client after sending the termination character
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading dummy confirmation from client!");
+        return -1;
+    }
 
     return newEmployee.id;
+}
+
+
+
+// Function to modify the role of an employee
+bool modify_employee_role(int connFD) {
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], writeBuffer[1000];
+    int employeeId, newRole;
+
+    // First, ensure that the current user is an admin
+    // For simplicity, we assume the admin check happens before calling this function
+    
+    // Get the employee ID from the admin
+    writeBytes = write(connFD, "Enter the Employee ID to change role: ", 39);
+    if (writeBytes == -1) {
+        perror("Error writing GET_EMPLOYEE_ID message to client!");
+        return false;
+    }
+    
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading Employee ID from client!");
+        return false;
+    }
+
+    employeeId = atoi(readBuffer);
+
+    struct Employee employee;
+    if (!find_employee_by_id(employeeId, &employee)) {
+        write(connFD, "Employee not found.\n", 20);
+        return false;
+    }
+
+    // Show the current role
+    snprintf(writeBuffer, sizeof(writeBuffer), "Current Role: %d (0: Admin, 1: Manager, 2: Bank Employee)\n", employee.employeeType);
+    write(connFD, writeBuffer, strlen(writeBuffer));
+    
+    // Get the new role from the admin
+    writeBytes = write(connFD, "Enter the new role (0 for Admin, 1 for Manager, 2 for Bank Employee): ", 66);
+    if (writeBytes == -1) {
+        perror("Error writing GET_NEW_ROLE message to client!");
+        return false;
+    }
+
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading new role from client!");
+        return false;
+    }
+
+    newRole = atoi(readBuffer);
+    if (newRole < 0 || newRole > 2) {
+        write(connFD, "Invalid role. Please enter 0, 1, or 2.\n", 39);
+        return false;
+    }
+
+    // Update the employee role
+    if (update_employee_role(employeeId, newRole)) {
+        write(connFD, "Employee role updated successfully.\n", 36);
+        return true;
+    } else {
+        write(connFD, "Error updating employee role.\n", 30);
+        return false;
+    }
+}
+
+
+
+// Function to find employee by ID from the file
+bool find_employee_by_id(int employeeId, struct Employee *employee) {
+    FILE *file = fopen(EMPLOYEE_FILE, "r");
+    if (file == NULL) {
+        perror("Error opening employee file.");
+        return false;
+    }
+
+    while (fread(employee, sizeof(struct Employee), 1, file)) {
+        if (employee->id == employeeId) {
+            fclose(file);
+            return true;
+        }
+    }
+
+    fclose(file);
+    return false;
+}
+
+
+
+
+// Function to update the employee role in the file
+bool update_employee_role(int employeeId, int newRole) {
+    FILE *file = fopen(EMPLOYEE_FILE, "r+");
+    if (file == NULL) {
+        perror("Error opening employee file.");
+        return false;
+    }
+
+    struct Employee employee;
+    while (fread(&employee, sizeof(struct Employee), 1, file)) {
+        if (employee.id == employeeId) {
+            // Found the employee, update the role
+            employee.employeeType = newRole;
+
+            // Move the file pointer back to the beginning of this record
+            fseek(file, -sizeof(struct Employee), SEEK_CUR);
+
+            // Write the updated employee record back to the file
+            fwrite(&employee, sizeof(struct Employee), 1, file);
+
+            fclose(file);
+            return true;
+        }
+    }
+
+    fclose(file);
+    return false;
 }
 
 
