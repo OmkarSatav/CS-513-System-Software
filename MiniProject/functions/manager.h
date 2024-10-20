@@ -1,7 +1,6 @@
 #ifndef MANAGER_FUNCTIONS
 #define MANAGER_FUNCTIONS
 
-// Semaphores are necessary joint account due the design choice I've made
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
@@ -35,16 +34,15 @@ void unlock_manager_critical_section(struct sembuf *semOp);
 
 
 bool manager_operation_handler(int connFD) {
-    // Call the manager login handler
-    if (manager_login_handler(connFD, &loggedInManager)) { // Assume `true` indicates Manager login
-        ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
-        char readBuffer[1000], writeBuffer[1000]; // Buffers for reading & writing to the client
+    if (manager_login_handler(connFD, &loggedInManager)) { 
+        ssize_t writeBytes, readBytes;            
+        char readBuffer[1000], writeBuffer[1000]; 
 
         bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, MANAGER_LOGIN_SUCCESS); // Message for successful login
+        strcpy(writeBuffer, MANAGER_LOGIN_SUCCESS); 
         while (1) {
             strcat(writeBuffer, "\n");
-            strcat(writeBuffer, MANAGER_MENU); // Assume you have a predefined MANAGER_MENU
+            strcat(writeBuffer, MANAGER_MENU); 
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
             if (writeBytes == -1) {
                 perror("Error while writing MANAGER_MENU to client!");
@@ -602,7 +600,7 @@ bool change_manager_password(int connFD) {
             return false;
         }
 
-        if (strcmp(readBuffer, newPassword) == 0) { // Check if new and re-entered passwords match
+        if (strcmp(readBuffer, newPassword) == 0) { 
             // Update password
             strcpy(loggedInManager.password, newPassword); 
 

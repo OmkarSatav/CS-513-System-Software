@@ -5,7 +5,7 @@
 // ========== COMMON TEXT =============================
 
 // Welcome Message
-#define INITIAL_PROMPT "🏦 Welcome to Vishwas Bank! 🌟\nWho are you?\n1. Admin 👨‍💼\t2. Customer 👤\t3. Manager 👩‍💼\t4. Employee 👨‍💻\nPress any other number to exit 🚪\nEnter the number corresponding to your choice: "
+#define INITIAL_PROMPT "🏦 Welcome to Pune Jatan Societal Bank! 🌟\nWho are you?\n1. Admin 👨‍💼\t2. Customer 👤\t3. Manager 👩‍💼\t4. Employee 👨‍💻\nPress any other number to exit 🚪\nEnter the number corresponding to your choice: "
 
 // LOGIN
 #define LOGIN_ID "🔑 Enter your login ID: "
@@ -162,12 +162,11 @@
 "🌟✨======================✨🌟\n" \
 "Please enter your choice: "
 
-// ====================================================
+// =====================================================
 
 // ========== CUSTOMER FEEDBACK =========================
 
 #define CUSTOMER_FEEDBACK "📝 Please enter your feedback: "
-
 
 
 // ==================================================
