@@ -14,8 +14,12 @@
 #include "../recordtypes/account.h"
 #include "../recordtypes/customer.h"
 #include "../recordtypes/transaction.h"
+#include "../recordtypes/employee.h"  
 #include "./admin-credentials.h"
 #include "./server-constants.h"
+
+bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager);
+
 
 // Function Prototypes =================================
 
@@ -27,6 +31,134 @@ bool get_transaction_details(int connFD, int accountNumber);
 // =====================================================
 
 // Function Definition =================================
+
+
+// Login handler function for both Manager and Employee
+bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
+    ssize_t readBytes, writeBytes; // Number of bytes written to / read from the socket
+    char readBuffer[1000], writeBuffer[1000]; // Buffers for reading & writing to the client
+    struct Employee employee; // Employee structure to hold the fetched employee details
+
+    bzero(readBuffer, sizeof(readBuffer));
+    bzero(writeBuffer, sizeof(writeBuffer));
+
+    // Get login message for respective user type
+    if (isManager) {
+        strcpy(writeBuffer, "Welcome, Manager! Please enter your login ID:"); // Manager welcome message
+    } else {
+        strcpy(writeBuffer, "Welcome, Employee! Please enter your login ID:"); // Employee welcome message
+    }
+
+    // Request for LOGIN ID message
+    strcat(writeBuffer, "\nLogin ID: ");
+
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    if (writeBytes == -1) {
+        perror("Error writing WELCOME & LOGIN_ID message to the client!");
+        return false;
+    }
+
+    // Read the login ID from the client
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading login ID from client!");
+        return false;
+    }
+
+    bool userFound = false;
+
+    // Validate the user based on the entered login ID
+    int employeeFileFD = open("./records/employee.bank", O_RDONLY); // Assuming employee.bank contains all employee data
+    if (employeeFileFD == -1) {
+        perror("Error opening employee file in read mode!");
+        return false;
+    }
+
+    int enteredID = atoi(readBuffer); // Convert the entered login ID to an integer
+    off_t offset = lseek(employeeFileFD, enteredID * sizeof(struct Employee), SEEK_SET);
+    if (offset >= 0) {
+        struct flock lock = {F_RDLCK, SEEK_SET, enteredID * sizeof(struct Employee), sizeof(struct Employee), getpid()};
+
+        // Apply read lock on the employee record
+        int lockingStatus = fcntl(employeeFileFD, F_SETLKW, &lock);
+        if (lockingStatus == -1) {
+            perror("Error obtaining read lock on employee record!");
+            close(employeeFileFD);
+            return false;
+        }
+
+        // Read employee record from the file
+        readBytes = read(employeeFileFD, &employee, sizeof(struct Employee));
+        if (readBytes == -1) {
+            perror("Error reading employee record from file!");
+            close(employeeFileFD);
+            return false;
+        }
+
+        // Release the lock on the employee record
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileFD, F_SETLK, &lock);
+
+        // Compare the entered login ID with the employee's ID
+        if (employee.id == enteredID) {
+            userFound = true;
+            *ptrToEmployee = employee; // Store employee info if found
+        }
+
+        close(employeeFileFD);
+    } else {
+        writeBytes = write(connFD, "The provided login ID does not exist.\n", 38);
+    }
+
+    if (userFound) {
+        bzero(writeBuffer, sizeof(writeBuffer));
+        writeBytes = write(connFD, "Please enter your password: ", 28);
+        if (writeBytes == -1) {
+            perror("Error writing PASSWORD message to client!");
+            return false;
+        }
+
+        // Read password from the client at runtime
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes <= 0) {
+            perror("Error reading password from the client!");
+            return false;
+        }
+
+        // Verify the password based on whether the user is a Manager or Employee
+        if (strcmp(readBuffer, employee.password) == 0) {
+            return true;
+        }
+
+        bzero(writeBuffer, sizeof(writeBuffer));
+        writeBytes = write(connFD, "Invalid password. Please try again.\n", 36);
+    } else {
+        bzero(writeBuffer, sizeof(writeBuffer));
+        writeBytes = write(connFD, "Invalid login. Please check your ID.\n", 37);
+    }
+
+    return false;
+}
+
+
+// Manager login handler
+bool manager_login_handler(int connFD, struct Employee *ptrToEmployee) {
+    return login_user(connFD, ptrToEmployee, true); // true indicates Manager
+}
+
+// Employee login handler
+bool employee_login_handler(int connFD, struct Employee *ptrToEmployee) {
+    return login_user(connFD, ptrToEmployee, false); // false indicates Employee
+}
+
+
+
+
+
+
+
+
 
 bool login_handler(bool isAdmin, int connFD, struct Customer *ptrToCustomerID)
 {

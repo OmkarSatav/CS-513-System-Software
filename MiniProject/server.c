@@ -14,6 +14,9 @@
 #include "./functions/server-constants.h"
 #include "./functions/admin.h"
 #include "./functions/customer.h"
+#include "./functions/manager.h"
+#include "./functions/employee.h"
+
 
 void connection_handler(int connFD);                // Handles the communication with the client
 
@@ -104,6 +107,12 @@ void connection_handler(int connectionFileDescriptor)
             case 2:
                 // Customer
                 customer_operation_handler(connectionFileDescriptor);
+                break;
+            case 3:
+                manager_operation_handler(connectionFileDescriptor);
+                break;
+            case 4:
+                employee_operation_handler(connectionFileDescriptor);
                 break;
             default:
                 // Exit

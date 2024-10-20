@@ -15,7 +15,7 @@ int add_employee(int connFD);
 bool modify_employee_role(int connFD);
 bool find_employee_by_id(int employeeId, struct Employee *employee);
 bool update_employee_role(int employeeId, int newRole);
-
+void change_admin_password(int connFD);
 
 bool modify_employee_info(int connFD) {
     ssize_t readBytes, writeBytes;
@@ -192,69 +192,84 @@ bool modify_employee_info(int connFD) {
 bool admin_operation_handler(int connFD)
 {
 
-    if (login_handler(true, connFD, NULL))
-    {
-        ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
-        char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
-        bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, ADMIN_LOGIN_SUCCESS);
-        while (1)
-        {
+   if (login_handler(true, connFD, NULL)) {
+    ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
+    char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
+    bzero(writeBuffer, sizeof(writeBuffer));
+    strcpy(writeBuffer, ADMIN_LOGIN_SUCCESS);
+        while (1) {
             strcat(writeBuffer, "\n");
             strcat(writeBuffer, ADMIN_MENU);
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-            if (writeBytes == -1)
-            {
+            if (writeBytes == -1) {
                 perror("Error while writing ADMIN_MENU to client!");
                 return false;
             }
             bzero(writeBuffer, sizeof(writeBuffer));
 
             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-            if (readBytes == -1)
-            {
+            if (readBytes == -1) {
                 perror("Error while reading client's choice for ADMIN_MENU");
                 return false;
             }
 
             int choice = atoi(readBuffer);
-            switch (choice)
-            {
-            case 1:
-                
-                get_customer_details(connFD, -1);
-                break;
-            case 2:
-                get_account_details(connFD, NULL);
-                break;
-            case 3: 
-                get_transaction_details(connFD, -1);
-                break;
-            case 4:
-                add_account(connFD);
-                break;
-            case 5:
-                delete_account(connFD);
-                break;
-            case 6:
-                modify_customer_info(connFD);
-                break;
-            case 7:
-                add_employee(connFD);
-                break;
-            case 8:
-                modify_employee_info(connFD);
-            case 9:
-                modify_employee_role(connFD);
-            default:
-                writeBytes = write(connFD, ADMIN_LOGOUT, strlen(ADMIN_LOGOUT));
-                return false;
+            switch (choice) {
+                case 1:
+                    get_customer_details(connFD, -1);
+                    break;
+                case 2:
+                    get_account_details(connFD, NULL);
+                    break;
+                case 3:
+                    get_transaction_details(connFD, -1);
+                    break;
+                case 4:
+                    add_account(connFD);
+                    break;
+                case 5:
+                    delete_account(connFD);
+                    break;
+                case 6:
+                    modify_customer_info(connFD);
+                    break;
+                case 7:
+                    add_employee(connFD);
+                    break;
+                case 8:
+                    modify_employee_info(connFD);
+                    break;
+                case 9:
+                    modify_employee_role(connFD);
+                    break;
+                case 10:
+                    change_admin_password(connFD);
+                    break;
+                case 11: // Logout
+                    writeBytes = write(connFD, "You have successfully logged out.\n", 35);
+                    if (writeBytes == -1) {
+                        perror("Error sending logout message to client");
+                    }
+                    return true; // Return to the main menu, keeping the connection open
+                case 12: // Exit
+                    writeBytes = write(connFD, "Exiting the application. Goodbye!\n", 34);
+                    if (writeBytes == -1) {
+                        perror("Error sending exit message to client");
+                    }
+                    close(connFD); // Close the client connection
+                    exit(0);       // Exit the application
+                default:
+                    writeBytes = write(connFD, "Invalid choice. Please try again.\n", 36);
+                    break; // Just notify the user and stay in the menu
             }
         }
-    }
-    else
-    {
-        // ADMIN LOGIN FAILED
+    } else {
+    // ADMIN LOGIN FAILED
+        const char *loginFailMessage = "Login failed. Please check your credentials and try again.\n";
+        ssize_t writeBytes = write(connFD, loginFailMessage, strlen(loginFailMessage));
+        if (writeBytes == -1) {
+            perror("Error sending login failure message to client");
+        }
         return false;
     }
     return true;
@@ -368,6 +383,47 @@ bool add_account(int connFD)
     readBytes = read(connFD, readBuffer, sizeof(read)); // Dummy read
     return true;
 }
+
+
+void change_admin_password(int connFD) {
+    char newPassword[100];
+    FILE *file;
+
+    // Prompt for new password
+    const char *promptMessage = "Enter new password: ";
+    write(connFD, promptMessage, strlen(promptMessage));
+
+    // Read new password from the client
+    bzero(newPassword, sizeof(newPassword));
+    ssize_t readBytes = read(connFD, newPassword, sizeof(newPassword) - 1);
+    if (readBytes == -1) {
+        perror("Error reading new password from client");
+        return;
+    }
+    newPassword[readBytes] = '\0'; // Ensure null-termination
+
+    // Open the credentials file for writing
+    file = fopen(CREDENTIALS_FILE, "w");
+    if (!file) {
+        perror("Error opening credentials file");
+        const char *errorMessage = "Error updating password. Please try again.\n";
+        write(connFD, errorMessage, strlen(errorMessage));
+        return;
+    }
+
+    // Write new credentials to the file
+    fprintf(file, "#ifndef ADMIN_CREDENTIALS\n#define ADMIN_CREDENTIALS\n\n");
+    fprintf(file, "#define ADMIN_LOGIN_ID \"admin\"\n#define ADMIN_PASSWORD \"%s\"\n\n", newPassword);
+    fprintf(file, "#endif\n");
+
+    // Close the file
+    fclose(file);
+
+    // Send success message back to the client
+    const char *successMessage = "Password updated successfully!\n";
+    write(connFD, successMessage, strlen(successMessage));
+}
+
 
 
 

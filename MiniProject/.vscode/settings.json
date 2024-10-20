@@ -5,6 +5,7 @@
         "server-constants.h": "c",
         "customer.h": "c",
         "account.h": "c",
-        "employee.h": "c"
+        "employee.h": "c",
+        "manager.h": "c"
     }
 }

@@ -5,7 +5,12 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
+#include "./server-constants.h"
+#include "../recordtypes/loan.h"
+#include "../recordtypes/feedback.h"
+
 struct Customer loggedInCustomer;
+
 int semIdentifier;
 
 // Function Prototypes =================================
@@ -21,7 +26,7 @@ bool lock_critical_section(struct sembuf *semOp);
 bool unlock_critical_section(struct sembuf *sem_op);
 void write_transaction_to_array(int *transactionArray, int ID);
 int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, int operation);
-
+bool apply_loan(int connFD);
 
 // =====================================================
 
@@ -110,6 +115,11 @@ bool customer_operation_handler(int connFD)
             case 7:
                 transfer_funds(connFD);
                 break;
+            case 8:
+                apply_loan(connFD);
+                break;
+            case 9:
+                write_feedback(connFD);
             default:
                 writeBytes = write(connFD, CUSTOMER_LOGOUT, strlen(CUSTOMER_LOGOUT));
                 return false;
@@ -809,6 +819,272 @@ void write_transaction_to_array(int *transactionArray, int ID)
         transactionArray[iter] = ID;
     }
 }
+
+
+
+
+
+
+// Function to apply for a loan
+bool apply_loan(int connFD) {
+    char readBuffer[500];
+    ssize_t readBytes, writeBytes;
+
+    struct Account account;
+    account.accountNumber = loggedInCustomer.account;  // Assuming loggedInCustomer is defined
+
+    // Retrieve account details
+    if (!get_account_details(connFD, &account)) {
+        return false;
+    }
+
+    // Check if the account is active
+    if (!account.active) {
+        write(connFD, "Account is deactivated.\n", strlen("Account is deactivated.\n"));
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+    int loanAmount;
+
+    // Ask the client to enter the loan amount
+    const char *promptMessage = "Please enter the loan amount you wish to apply for: ";
+    writeBytes = write(connFD, promptMessage, strlen(promptMessage));
+    if (writeBytes == -1) {
+        perror("Error sending prompt to client");
+        return false;
+    }
+
+    // Read the loan amount from the client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+    if (readBytes == -1) {
+        perror("Error reading loan amount from client");
+        return false;
+    }
+    readBuffer[readBytes] = '\0'; // Ensure null-termination
+
+    // Convert the loan amount to an integer
+    loanAmount = atoi(readBuffer);
+    if (loanAmount <= 0) {
+        const char *errorMessage = "Invalid loan amount provided. Please enter a valid amount.\n";
+        write(connFD, errorMessage, strlen(errorMessage));
+        return false;
+    }
+
+    // Open the loans file for reading and writing, create if it does not exist
+    int loanFileDescriptor = open(LOAN_RECORD_FILE, O_CREAT | O_RDWR, S_IRWXU);
+    if (loanFileDescriptor == -1) {
+        perror("Error opening loans file for reading/writing");
+        const char *errorMessage = "Internal error. Cannot access loan records.\n";
+        write(connFD, errorMessage, strlen(errorMessage));
+        return false;
+    }
+
+    struct Loan newLoan, lastLoan;
+    off_t fileSize = lseek(loanFileDescriptor, 0, SEEK_END);
+    if (fileSize == 0) {
+        // File is empty, set the first loan ID to 0
+        newLoan.loanID = 0;
+    } else {
+        // Move to the last loan record
+        int offset = lseek(loanFileDescriptor, -sizeof(struct Loan), SEEK_END);
+        if (offset == -1) {
+            perror("Error seeking to last loan record");
+            close(loanFileDescriptor);
+            return false;
+        }
+
+        // Read the last loan record to determine the new loan ID
+        readBytes = read(loanFileDescriptor, &lastLoan, sizeof(struct Loan));
+        if (readBytes == -1) {
+            perror("Error reading last loan record");
+            close(loanFileDescriptor);
+            return false;
+        }
+
+        // Set the new loan ID
+        newLoan.loanID = lastLoan.loanID + 1;
+    }
+
+    // Set the new loan details
+    newLoan.amount = loanAmount;
+    newLoan.custID = loggedInCustomer.account; // Assuming loggedInCustomer is defined
+    newLoan.status = 0; // Initial status: unassigned
+    newLoan.empID = -1; // No employee assigned yet
+
+    // Write lock to ensure exclusive access while adding the new loan
+    struct flock writeLock = {F_WRLCK, SEEK_END, 0, 0, getpid()};
+    if (fcntl(loanFileDescriptor, F_SETLKW, &writeLock) == -1) {
+        perror("Error obtaining write lock on loan file");
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Write the new loan record to the file
+    if (write(loanFileDescriptor, &newLoan, sizeof(struct Loan)) == -1) {
+        perror("Error writing new loan record to file");
+        writeLock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &writeLock);
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Release the write lock
+    writeLock.l_type = F_UNLCK;
+    fcntl(loanFileDescriptor, F_SETLK, &writeLock);
+
+    // Close the file descriptor
+    close(loanFileDescriptor);
+
+    // Send confirmation back to the client
+    const char *successMessage = "Loan application has been successfully submitted.\n";
+    write(connFD, successMessage, strlen(successMessage));
+
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool write_feedback(int connFD) {
+    char readBuffer[500];
+    ssize_t readBytes, writeBytes;
+
+    struct Account account;
+    account.accountNumber = loggedInCustomer.account;
+
+    // Retrieve account details
+    if (!get_account_details(connFD, &account)) {
+        return false;
+    }
+
+    // Check if the account is active
+    if (!account.active) {
+        write(connFD, ACCOUNT_DEACTIVATED, strlen(ACCOUNT_DEACTIVATED));
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+    struct Feedback newFeedback, oldFeedback;
+    newFeedback.account = loggedInCustomer.account; // Setting account number
+    newFeedback.state = 0; // Setting state
+
+    // Open the feedback file
+    int feedbackFileDescriptor = open("records/feedback.bank", O_CREAT | O_RDWR, S_IRWXU);
+    if (feedbackFileDescriptor == -1) {
+        perror("Error opening feedback file!");
+        return false;
+    }
+
+    // Check if the file is empty to determine the newFeedback ID
+    off_t fileSize = lseek(feedbackFileDescriptor, 0, SEEK_END);
+    if (fileSize == 0) {
+        // File is empty, set the first feedback ID to 0
+        newFeedback.id = 0;
+    } else {
+        // Move to the last feedback record
+        int offset = lseek(feedbackFileDescriptor, -sizeof(struct Feedback), SEEK_END);
+        if (offset == -1) {
+            perror("Error seeking to last Feedback record!");
+            close(feedbackFileDescriptor);
+            return false;
+        }
+
+        // Set up a read lock on the last feedback record
+        struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Feedback), getpid()};
+        int lockingStatus = fcntl(feedbackFileDescriptor, F_SETLKW, &lock);
+        if (lockingStatus == -1) {
+            perror("Error obtaining read lock on Feedback record!");
+            close(feedbackFileDescriptor);
+            return false;
+        }
+
+        // Read the last feedback record to get the ID
+        readBytes = read(feedbackFileDescriptor, &oldFeedback, sizeof(struct Feedback));
+        if (readBytes == -1) {
+            perror("Error while reading Feedback record from file!");
+            lock.l_type = F_UNLCK;
+            fcntl(feedbackFileDescriptor, F_SETLK, &lock);
+            close(feedbackFileDescriptor);
+            return false;
+        }
+
+        // Release the read lock
+        lock.l_type = F_UNLCK;
+        fcntl(feedbackFileDescriptor, F_SETLK, &lock);
+
+        // Set the new feedback ID based on the last ID
+        newFeedback.id = oldFeedback.id + 1;
+    }
+
+    // Ask for feedback from the client
+    writeBytes = write(connFD, CUSTOMER_FEEDBACK, strlen(CUSTOMER_FEEDBACK));
+    if (writeBytes == -1) {
+        perror("Error writing CUSTOMER_FEEDBACK prompt to client!");
+        close(feedbackFileDescriptor);
+        return false;
+    }
+
+    // Read the feedback message from the client
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading feedback from client!");
+        close(feedbackFileDescriptor);
+        return false;
+    }
+
+    // Copy the feedback message, ensuring it is null-terminated
+    strncpy(newFeedback.message, readBuffer, sizeof(newFeedback.message) - 1);
+    newFeedback.message[sizeof(newFeedback.message) - 1] = '\0';
+
+    // Write lock to ensure exclusive access while adding the new feedback
+    struct flock writeLock = {F_WRLCK, SEEK_END, 0, 0, getpid()};
+    if (fcntl(feedbackFileDescriptor, F_SETLKW, &writeLock) == -1) {
+        perror("Error obtaining write lock on Feedback file!");
+        close(feedbackFileDescriptor);
+        return false;
+    }
+
+    // Write the new feedback record to the file
+    if (write(feedbackFileDescriptor, &newFeedback, sizeof(struct Feedback)) == -1) {
+        perror("Error writing new Feedback record to file!");
+        writeLock.l_type = F_UNLCK;
+        fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
+        close(feedbackFileDescriptor);
+        return false;
+    }
+
+    // Release the write lock
+    writeLock.l_type = F_UNLCK;
+    fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
+
+    // Close the file descriptor
+    close(feedbackFileDescriptor);
+
+    return true;
+}
+
+
+
+
+
+
+
+
 
 // int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, bool operation)
 // {

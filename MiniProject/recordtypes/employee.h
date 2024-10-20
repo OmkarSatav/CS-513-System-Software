@@ -1,5 +1,5 @@
-#ifndef EMPLOYEE_RECORD
-#define EMPLOYEE_RECORD
+#ifndef EMPLOYEE_H
+#define EMPLOYEE_H
 
 struct Employee {
     int id; // Unique ID for the employee
