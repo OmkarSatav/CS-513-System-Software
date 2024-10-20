@@ -59,7 +59,6 @@
 #define ADMIN_ADD_CUSTOMER_WRONG_GENDER "⚠️ It seems you've entered a wrong gender choice!\nYou'll now be redirected to the main menu!^"
 
 // ADD ACCOUNT
-#define ADMIN_ADD_ACCOUNT_TYPE "💼 What type of account is to be created? Enter 1 for Regular account and 2 for Joint account: "
 #define ADMIN_ADD_ACCOUNT_NUMBER "🆔 The newly created account's number is: "
 
 // DELETE ACCOUNT

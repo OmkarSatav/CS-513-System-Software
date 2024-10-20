@@ -1159,28 +1159,6 @@ bool unlock_critical_section(struct sembuf *semOp)
     return true;
 }
 
-void write_transaction_to_array(int *transactionArray, int ID)
-{
-    // Check if there's any free space in the array to write the new transaction ID
-    int iter = 0;
-    while (transactionArray[iter] != -1)
-        iter++;
-
-    if (iter >= MAX_TRANSACTIONS)
-    {
-        // No space
-        for (iter = 1; iter < MAX_TRANSACTIONS; iter++)
-            // Shift elements one step back discarding the oldest transaction
-            transactionArray[iter - 1] = transactionArray[iter];
-        transactionArray[iter - 1] = ID;
-    }
-    else
-    {
-        // Space available
-        transactionArray[iter] = ID;
-    }
-}
-
 
 
 

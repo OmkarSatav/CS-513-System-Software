@@ -25,7 +25,7 @@ bool approve_or_reject_loan(int connFD);
 void check_loan_status(int connFD);
 bool change_employee_password(int connFD);
 bool add_account(int connFD);
-int add_customer(int connFD, bool isPrimary, int newAccountNumber);
+int add_customer(int connFD, int newAccountNumber);
 // =====================================================
 // Function Definition =================================
 
