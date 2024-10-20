@@ -1,90 +1,48 @@
+Transaction ID: 1
 Account ID: 5
 Details of transaction:
-	Date: 16:55 18/10/2024
-	Operation: Withdraw
-	Balance -
-		Before: 542
-		After: 442
-		Difference: -100
-
-Account ID: 2
-Details of transaction:
-	Date: 16:55 18/10/2024
+	Date: 11:21 20/10/2024
 	Operation: Deposit
+	Sender Account ID: 5
+	Receiver Account ID: 5
 	Balance -
-		Before: 440
-		After: 540
+		Before: 1579
+		After: 1679
 		Difference: 100
 
+Transaction ID: 2
 Account ID: 5
 Details of transaction:
-	Date: 16:57 18/10/2024
+	Date: 11:21 20/10/2024
 	Operation: Withdraw
+	Sender Account ID: 5
+	Receiver Account ID: 5
 	Balance -
-		Before: 442
-		After: 405
-		Difference: -37
-
-Account ID: 2
-Details of transaction:
-	Date: 16:57 18/10/2024
-	Operation: Deposit
-	Balance -
-		Before: 540
-		After: 577
-		Difference: 37
-
-Account ID: 5
-Details of transaction:
-	Date: 16:57 18/10/2024
-	Operation: Withdraw
-	Balance -
-		Before: 405
-		After: 395
-		Difference: -10
-
-Account ID: 2
-Details of transaction:
-	Date: 16:57 18/10/2024
-	Operation: Deposit
-	Balance -
-		Before: 577
-		After: 587
-		Difference: 10
-
-Account ID: 9
-Details of transaction:
-	Date: 18:10 18/10/2024
-	Operation: Withdraw
-	Balance -
-		Before: 988
-		After: 1088
-		Difference: 100
-
-Account ID: 9
-Details of transaction:
-	Date: 18:11 18/10/2024
-	Operation: Withdraw
-	Balance -
-		Before: 1088
-		After: 988
+		Before: 1679
+		After: 1579
 		Difference: -100
 
+Transaction ID: 3
 Account ID: 5
 Details of transaction:
-	Date: 18:18 18/10/2024
-	Operation: Withdraw
+	Date: 11:22 20/10/2024
+	Operation: Transfer
+	Sender Account ID: 5
+	Receiver Account ID: 2
 	Balance -
-		Before: 395
-		After: 385
+		Before: 1579
+		After: 1569
 		Difference: -10
 
-Account ID: 9
+Transaction ID: 4
+Account ID: 2
 Details of transaction:
-	Date: 18:18 18/10/2024
-	Operation: Deposit
+	Date: 11:22 20/10/2024
+	Operation: Transfer
+	Sender Account ID: 2
+	Receiver Account ID: 5
 	Balance -
-		Before: 988
-		After: 998
+		Before: 587
+		After: 597
 		Difference: 10
 

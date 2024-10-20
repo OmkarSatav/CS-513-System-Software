@@ -25,7 +25,9 @@ bool change_password(int connFD);
 bool lock_critical_section(struct sembuf *semOp);
 bool unlock_critical_section(struct sembuf *sem_op);
 void write_transaction_to_array(int *transactionArray, int ID);
-int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, int operation);
+bool write_feedback(int connFD);
+// int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, int operation);
+int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber); 
 bool apply_loan(int connFD);
 
 // =====================================================
@@ -92,37 +94,45 @@ bool customer_operation_handler(int connFD)
             // printf("READ BUFFER : %s\n", readBuffer);
             int choice = atoi(readBuffer);
             // printf("CHOICE : %d\n", choice);
-            switch (choice)
-            {
-            case 1:
-                get_customer_details(connFD, loggedInCustomer.id);
-                break;
-            case 2:
-                deposit(connFD);
-                break;
-            case 3:
-                withdraw(connFD);
-                break;
-            case 4:
-                get_balance(connFD);
-                break;
-            case 5:
-                get_transaction_details(connFD, loggedInCustomer.account);
-                break;
-            case 6:
-                change_password(connFD);
-                break;
-            case 7:
-                transfer_funds(connFD);
-                break;
-            case 8:
-                apply_loan(connFD);
-                break;
-            case 9:
-                write_feedback(connFD);
-            default:
-                writeBytes = write(connFD, CUSTOMER_LOGOUT, strlen(CUSTOMER_LOGOUT));
-                return false;
+            switch (choice) {
+                case 1:
+                    get_customer_details(connFD, loggedInCustomer.id);
+                    break;
+                case 2:
+                    deposit(connFD);
+                    break;
+                case 3:
+                    withdraw(connFD);
+                    break;
+                case 4:
+                    get_balance(connFD);
+                    break;
+                case 5:
+                    get_transaction_details(connFD, loggedInCustomer.account);
+                    break;
+                case 6:
+                    change_password(connFD);
+                    break;
+                case 7:
+                    transfer_funds(connFD);
+                    break;
+                case 8:
+                    apply_loan(connFD);
+                    break;
+                case 9:
+                    write_feedback(connFD);
+                    break;
+                case 10:
+                    writeBytes = write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 56);
+                    return false; // Logout
+                case 11:
+                    writeBytes = write(connFD, "Exiting the application. Thank you! 🌟\n", 42);
+                    exit(0); // Exit the application
+                default:
+                    writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
+                    if (writeBytes == -1) {
+                        perror("Error sending invalid choice message to client!");
+                    }
             }
         }
     }
@@ -133,6 +143,8 @@ bool customer_operation_handler(int connFD)
     }
     return true;
 }
+
+
 
 bool deposit(int connFD) {
     char readBuffer[1000];
@@ -183,7 +195,8 @@ bool deposit(int connFD) {
     }
 
     // Log the transaction before updating the account balance
-    int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance + depositAmount, 0);
+    // Here, the receiverAccNumber is the same as the sender's accountNumber
+    int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance + depositAmount, 0 ,account.accountNumber);
     if (newTransactionID < 0) {
         unlock_critical_section(&semOp);
         return false; // Handle transaction logging failure
@@ -239,6 +252,130 @@ bool deposit(int connFD) {
     return true;
 }
 
+
+// bool withdraw(int connFD) {
+//     char readBuffer[1000];
+//     ssize_t readBytes, writeBytes;
+
+//     struct Account account;
+//     account.accountNumber = loggedInCustomer.account;
+
+//     long int withdrawAmount = 0;
+
+//     // Lock the critical section
+//     struct sembuf semOp;
+//     lock_critical_section(&semOp);
+
+//     // Get account details
+//     if (!get_account_details(connFD, &account)) {
+//         unlock_critical_section(&semOp);
+//         perror("Failed to get account details");
+//         return false;
+//     }
+
+//     if (!account.active) {
+//         write(connFD, ACCOUNT_DEACTIVATED, strlen(ACCOUNT_DEACTIVATED));
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Ask for the withdraw amount
+//     writeBytes = write(connFD, WITHDRAW_AMOUNT, strlen(WITHDRAW_AMOUNT));
+//     if (writeBytes == -1) {
+//         perror("Error writing WITHDRAW_AMOUNT message to client!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Read the withdraw amount from client
+//     bzero(readBuffer, sizeof(readBuffer));
+//     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+//     if (readBytes == -1) {
+//         perror("Error reading withdraw amount from client!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     withdrawAmount = atol(readBuffer);
+//     printf("Withdraw Amount Requested: %ld\n", withdrawAmount); // Debug log
+
+//     // Validate withdraw amount
+//     if (withdrawAmount > 0 && account.balance >= withdrawAmount) {
+//         // Log the transaction before updating the account balance
+//         int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance - withdrawAmount, 0);
+//         if (newTransactionID < 0) {
+//             unlock_critical_section(&semOp);
+//             return false; // Handle transaction logging failure
+//         }
+
+//         // Remove this line if not needed
+//         // write_transaction_to_array(account.transactions, newTransactionID); // Not needed for file logging
+
+//         // Update account balance
+//         account.balance -= withdrawAmount;
+
+//         // Update the account file with the new balance
+//         int accountFileDescriptor = open(ACCOUNT_FILE, O_RDWR);
+//         if (accountFileDescriptor == -1) {
+//             perror("Error opening account file for updating!");
+//             unlock_critical_section(&semOp);
+//             return false;
+//         }
+
+//         // Seek to the position of the account
+//         off_t offset = lseek(accountFileDescriptor, account.accountNumber * sizeof(struct Account), SEEK_SET);
+//         if (offset == -1) {
+//             perror("Error seeking in account file!");
+//             close(accountFileDescriptor);
+//             unlock_critical_section(&semOp);
+//             return false;
+//         }
+
+//         // Lock the account record for writing
+//         struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Account), getpid()};
+//         if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
+//             perror("Error obtaining write lock on account record!");
+//             close(accountFileDescriptor);
+//             unlock_critical_section(&semOp);
+//             return false;
+//         }
+
+//         // Write the updated account balance to the file
+//         writeBytes = write(accountFileDescriptor, &account, sizeof(struct Account));
+//         if (writeBytes == -1) {
+//             perror("Error writing updated account balance to file!");
+//             lock.l_type = F_UNLCK; // Unlock on error
+//             fcntl(accountFileDescriptor, F_SETLK, &lock);
+//             close(accountFileDescriptor);
+//             unlock_critical_section(&semOp);
+//             return false;
+//         }
+
+//         // Unlock the account record
+//         lock.l_type = F_UNLCK;
+//         fcntl(accountFileDescriptor, F_SETLK, &lock);
+//         close(accountFileDescriptor);
+
+//         // Notify client of success
+//         write(connFD, WITHDRAW_AMOUNT_SUCCESS, strlen(WITHDRAW_AMOUNT_SUCCESS));
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+//         // Get the updated balance for the client
+//         get_balance(connFD);
+//         unlock_critical_section(&semOp);
+//         return true;
+//     } else {
+//         // Invalid withdrawal amount
+//         writeBytes = write(connFD, WITHDRAW_AMOUNT_INVALID, strlen(WITHDRAW_AMOUNT_INVALID));
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+// }
+
+
+
 bool withdraw(int connFD) {
     char readBuffer[1000];
     ssize_t readBytes, writeBytes;
@@ -289,14 +426,12 @@ bool withdraw(int connFD) {
     // Validate withdraw amount
     if (withdrawAmount > 0 && account.balance >= withdrawAmount) {
         // Log the transaction before updating the account balance
-        int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance - withdrawAmount, 0);
+        // Pass account.accountNumber for both sender and receiver since it's a withdrawal
+        int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance - withdrawAmount, 1, account.accountNumber);
         if (newTransactionID < 0) {
             unlock_critical_section(&semOp);
             return false; // Handle transaction logging failure
         }
-
-        // Remove this line if not needed
-        // write_transaction_to_array(account.transactions, newTransactionID); // Not needed for file logging
 
         // Update account balance
         account.balance -= withdrawAmount;
@@ -359,6 +494,9 @@ bool withdraw(int connFD) {
         return false;
     }
 }
+
+
+
 
 bool get_balance(int connFD)
 {
@@ -428,6 +566,14 @@ bool transfer_funds(int connFD) {
 
     int receiverAccountNumber = atoi(readBuffer);
 
+    // Check if the receiver is the same as the sender
+    if (receiverAccountNumber == senderAccount.accountNumber) {
+        write(connFD, "Cannot transfer funds to the same account!", 42);
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        unlock_critical_section(&semOp);
+        return false;
+    }
+
     // Get recipient's account details
     receiverAccount.accountNumber = receiverAccountNumber;
     if (!get_account_details(receiverAccountNumber, &receiverAccount)) {
@@ -469,7 +615,15 @@ bool transfer_funds(int connFD) {
     }
 
     // Log the transaction for sender (Withdraw operation)
-    int newSenderTransactionID = write_transaction_to_file(senderAccount.accountNumber, senderAccount.balance, senderAccount.balance - transferAmount, 0);
+    int newSenderTransactionID = write_transaction_to_file(
+        senderAccount.accountNumber, 
+        senderAccount.balance, 
+        senderAccount.balance - transferAmount, 
+        2, 
+        receiverAccount.accountNumber  // Receiver's account for sender's transaction
+    );
+
+
     if (newSenderTransactionID < 0) {
         unlock_critical_section(&semOp);
         return false; // Handle transaction logging failure
@@ -526,7 +680,15 @@ bool transfer_funds(int connFD) {
     }
 
     // Log the transaction for receiver (Deposit operation)
-    int newReceiverTransactionID = write_transaction_to_file(receiverAccount.accountNumber, receiverAccount.balance, receiverAccount.balance + transferAmount, 1);
+    int newReceiverTransactionID = write_transaction_to_file(
+        receiverAccount.accountNumber, 
+        receiverAccount.balance, 
+        receiverAccount.balance + transferAmount, 
+        2, 
+        senderAccount.accountNumber  // Sender's account for receiver's transaction
+    );
+
+
     if (newReceiverTransactionID < 0) {
         close(accountFileDescriptor);
         unlock_critical_section(&semOp);
@@ -569,7 +731,7 @@ bool transfer_funds(int connFD) {
     close(accountFileDescriptor);
 
     // Notify sender and receiver
-    writeBytes = write(connFD, "Transfer successful!^", 21);
+    writeBytes = write(connFD, "Transfer successful!^", 22);
     if (writeBytes == -1) {
         perror("Error sending transfer success message!");
         unlock_critical_section(&semOp);
@@ -584,50 +746,249 @@ bool transfer_funds(int connFD) {
 
 
 
-int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation) {
-    char transactionBuffer[1024];
-    char operationType[10];
-    time_t now = time(NULL);
-    struct tm *local = localtime(&now);
 
-    // Determine the operation type (0 = Withdraw, 1 = Deposit)
-    if (operation == 0) {
-        strcpy(operationType, "Withdraw");
-    } else if (operation == 1) {
-        strcpy(operationType, "Deposit");
-    }
+// bool transfer_funds(int connFD) {
+//     char readBuffer[1000];
+//     ssize_t readBytes, writeBytes;
+//     struct Account senderAccount, receiverAccount;
+//     senderAccount.accountNumber = loggedInCustomer.account;
+//     long transferAmount = 0;
 
-    long difference = afterBalance - beforeBalance;
+//     // Lock the critical section
+//     struct sembuf semOp;
+//     lock_critical_section(&semOp);
 
-    // Format the transaction log with account number
-    snprintf(transactionBuffer, sizeof(transactionBuffer), 
-             "Account ID: %d\n"
-             "Details of transaction:\n"
-             "\tDate: %02d:%02d %02d/%02d/%d\n"
-             "\tOperation: %s\n"
-             "\tBalance -\n"
-             "\t\tBefore: %ld\n"
-             "\t\tAfter: %ld\n"
-             "\t\tDifference: %ld\n\n",
-             accountNumber, local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
-             operationType, beforeBalance, afterBalance, difference);
+//     // Get sender's account details
+//     if (!get_account_details(connFD, &senderAccount)) {
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
 
-    // Write to transaction file
-    int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
-    if (transactionFileDescriptor == -1) {
-        perror("Error opening transaction file");
-        return -1;
-    }
+//     if (!senderAccount.active) {
+//         write(connFD, "Account deactivated", 20);
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
 
-    if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
-        perror("Error writing transaction to file");
-        close(transactionFileDescriptor);
-        return -1;
-    }
+//     // Ask for receiver's account ID
+//     writeBytes = write(connFD, "Enter the account ID of the recipient: ", 40);
+//     if (writeBytes == -1) {
+//         perror("Error writing recipient account prompt!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
 
-    close(transactionFileDescriptor);
-    return 1;
-}
+//     bzero(readBuffer, sizeof(readBuffer));
+//     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+//     if (readBytes == -1) {
+//         perror("Error reading recipient account ID!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     int receiverAccountNumber = atoi(readBuffer);
+
+//     // Get recipient's account details
+//     receiverAccount.accountNumber = receiverAccountNumber;
+//     if (!get_account_details(receiverAccountNumber, &receiverAccount)) {
+//         write(connFD, "Recipient account not found!", 29);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     if (!receiverAccount.active) {
+//         write(connFD, "Recipient account is deactivated!", 33);
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Ask for the transfer amount
+//     writeBytes = write(connFD, "Enter the amount to transfer: ", 30);
+//     if (writeBytes == -1) {
+//         perror("Error writing transfer amount prompt!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     bzero(readBuffer, sizeof(readBuffer));
+//     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+//     if (readBytes == -1) {
+//         perror("Error reading transfer amount!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     transferAmount = atol(readBuffer);
+
+//     if (transferAmount <= 0 || senderAccount.balance < transferAmount) {
+//         writeBytes = write(connFD, "Insufficient funds or invalid amount!", 37);
+//         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Log the transaction for sender (Withdraw operation)
+//     int newSenderTransactionID = write_transaction_to_file(senderAccount.accountNumber, senderAccount.balance, senderAccount.balance - transferAmount, 0);
+//     if (newSenderTransactionID < 0) {
+//         unlock_critical_section(&semOp);
+//         return false; // Handle transaction logging failure
+//     }
+
+//     // Deduct from sender's account
+//     senderAccount.balance -= transferAmount;
+
+//     // Update sender's account in file
+//     int accountFileDescriptor = open(ACCOUNT_FILE, O_WRONLY);
+//     if (accountFileDescriptor == -1) {
+//         perror("Error opening account file for updating sender!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     off_t offset = lseek(accountFileDescriptor, senderAccount.accountNumber * sizeof(struct Account), SEEK_SET);
+//     if (offset == -1) {
+//         perror("Error seeking in account file for sender!");
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Account), getpid()};
+//     if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
+//         perror("Error obtaining write lock on sender account record!");
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     writeBytes = write(accountFileDescriptor, &senderAccount, sizeof(struct Account));
+//     if (writeBytes == -1) {
+//         perror("Error writing updated balance into sender account file!");
+//         lock.l_type = F_UNLCK;
+//         fcntl(accountFileDescriptor, F_SETLK, &lock);
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Unlock the sender account record
+//     lock.l_type = F_UNLCK;
+//     fcntl(accountFileDescriptor, F_SETLK, &lock);
+//     close(accountFileDescriptor);  // Close after updating sender
+
+//     // Reopen the file for the receiver's account
+//     accountFileDescriptor = open(ACCOUNT_FILE, O_WRONLY);
+//     if (accountFileDescriptor == -1) {
+//         perror("Error opening account file for updating receiver!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Log the transaction for receiver (Deposit operation)
+//     int newReceiverTransactionID = write_transaction_to_file(receiverAccount.accountNumber, receiverAccount.balance, receiverAccount.balance + transferAmount, 1);
+//     if (newReceiverTransactionID < 0) {
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false; // Handle transaction logging failure
+//     }
+
+//     // Add to receiver's account
+//     receiverAccount.balance += transferAmount;
+
+//     // Update receiver's account in file
+//     offset = lseek(accountFileDescriptor, receiverAccount.accountNumber * sizeof(struct Account), SEEK_SET);
+//     if (offset == -1) {
+//         perror("Error seeking in account file for receiver!");
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     lock.l_type = F_WRLCK;
+//     if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
+//         perror("Error obtaining write lock on receiver account record!");
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     writeBytes = write(accountFileDescriptor, &receiverAccount, sizeof(struct Account));
+//     if (writeBytes == -1) {
+//         perror("Error writing updated balance into receiver account file!");
+//         lock.l_type = F_UNLCK;
+//         fcntl(accountFileDescriptor, F_SETLK, &lock);
+//         close(accountFileDescriptor);
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Unlock the receiver account record
+//     lock.l_type = F_UNLCK;
+//     fcntl(accountFileDescriptor, F_SETLK, &lock);
+//     close(accountFileDescriptor);
+
+//     // Notify sender and receiver
+//     writeBytes = write(connFD, "Transfer successful!^", 21);
+//     if (writeBytes == -1) {
+//         perror("Error sending transfer success message!");
+//         unlock_critical_section(&semOp);
+//         return false;
+//     }
+
+//     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+//     unlock_critical_section(&semOp);
+//     return true;
+// }
+
+
+
+// int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation) {
+//     char transactionBuffer[1024];
+//     char operationType[10];
+//     time_t now = time(NULL);
+//     struct tm *local = localtime(&now);
+
+//     // Determine the operation type (0 = Withdraw, 1 = Deposit)
+//     if (operation == 0) {
+//         strcpy(operationType, "Withdraw");
+//     } else if (operation == 1) {
+//         strcpy(operationType, "Deposit");
+//     }
+
+//     long difference = afterBalance - beforeBalance;
+
+//     // Format the transaction log with account number
+//     snprintf(transactionBuffer, sizeof(transactionBuffer), 
+//              "Account ID: %d\n"
+//              "Details of transaction:\n"
+//              "\tDate: %02d:%02d %02d/%02d/%d\n"
+//              "\tOperation: %s\n"
+//              "\tBalance -\n"
+//              "\t\tBefore: %ld\n"
+//              "\t\tAfter: %ld\n"
+//              "\t\tDifference: %ld\n\n",
+//              accountNumber, local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
+//              operationType, beforeBalance, afterBalance, difference);
+
+//     // Write to transaction file
+//     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
+//     if (transactionFileDescriptor == -1) {
+//         perror("Error opening transaction file");
+//         return -1;
+//     }
+
+//     if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
+//         perror("Error writing transaction to file");
+//         close(transactionFileDescriptor);
+//         return -1;
+//     }
+
+//     close(transactionFileDescriptor);
+//     return 1;
+// }
 
 
 
@@ -1079,7 +1440,70 @@ bool write_feedback(int connFD) {
 }
 
 
+int get_new_transaction_id() {
+    static int transactionID = 0;
+    // Increment the transaction ID for each new transaction
+    return ++transactionID;
+}
 
+
+int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
+    char transactionBuffer[1024];
+    char operationType[10];
+    time_t now = time(NULL);
+    struct tm *local = localtime(&now);
+
+    // Determine the operation type (0 = Withdraw, 1 = Deposit)
+    if (operation == 0) {
+        strcpy(operationType, "Deposit");
+    } else if (operation == 1) {
+        strcpy(operationType, "Withdraw");
+    }else if(operation == 2){
+        strcpy(operationType, "Transfer");
+    }
+
+    long difference = afterBalance - beforeBalance;
+
+    // Get the unique transaction ID
+    int transactionID = get_new_transaction_id();
+
+    // Format the transaction log with account number and other details
+    snprintf(transactionBuffer, sizeof(transactionBuffer),
+             "Transaction ID: %d\n"
+             "Account ID: %d\n"
+             "Details of transaction:\n"
+             "\tDate: %02d:%02d %02d/%02d/%d\n"
+             "\tOperation: %s\n"
+             "\tSender Account ID: %d\n"
+             "\tReceiver Account ID: %d\n"
+             "\tBalance -\n"
+             "\t\tBefore: %ld\n"
+             "\t\tAfter: %ld\n"
+             "\t\tDifference: %ld\n\n",
+             transactionID, 
+             accountNumber, 
+             local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
+             operationType, 
+             accountNumber, // Sender Account (same as depositor's account)
+             receiverAccountNumber, // Receiver Account
+             beforeBalance, afterBalance, difference);
+
+    // Write the transaction to the file
+    int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
+    if (transactionFileDescriptor == -1) {
+        perror("Error opening transaction file");
+        return -1;
+    }
+
+    if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
+        perror("Error writing transaction to file");
+        close(transactionFileDescriptor);
+        return -1;
+    }
+
+    close(transactionFileDescriptor);
+    return transactionID;
+}
 
 
 

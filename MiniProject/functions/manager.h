@@ -25,6 +25,8 @@ bool assign_loan_to_employee(int connFD);
 void send_loan_details_to_manager(int connFD);
 bool read_feedback_and_update_state(int connFD);
 bool read_feedback_ids_with_state_0(int connFD);
+bool change_manager_password(int connFD);
+void unlock_manager_critical_section(struct sembuf *semOp);
 // =====================================================
 
 // Function Definition =================================
@@ -66,26 +68,26 @@ bool manager_operation_handler(int connFD) {
                     deactivate_account(connFD);
                     break;
                 case 3:
+                    send_loan_details_to_manager(connFD);
+                    assign_loan_to_employee(connFD);
+                    break;
+                case 4:
                     read_feedback_ids_with_state_0(connFD); 
                     read_feedback_and_update_state(connFD);
                     break;
-                case 4:
-                    // change_password(connFD); // Implement this function
-                    break;
                 case 5:
-                    // writeBytes = write(connFD, MANAGER_LOGOUT, strlen(MANAGER_LOGOUT)); // Assume you have this constant
-                    return false; // Logout
+                    change_manager_password(connFD); // Implement this function
+                    break;
                 case 6:
-                    send_loan_details_to_manager(connFD);
-                    break;
+                    writeBytes = write(connFD, "You have logged out.\n", 22);
+                    return; // Logout
                 case 7:
-                    assign_loan_to_employee(connFD);
-                    break;
+                    writeBytes = write(connFD, "Exiting the application.\n", 25);
+                    exit(0); // Exit the application
                 default:
                     writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
                     if (writeBytes == -1) {
                         perror("Error sending invalid choice message to client!");
-                        return false;
                     }
             }
         }
@@ -360,7 +362,7 @@ void send_loan_details_to_manager(int connFD) {
     int count = 0; // To count the number of loans
 
     // Prepare header for the loan details
-    const char *header = "Loans Assigned to Manager:\n";
+    const char *header = "Loans Assigned to Manager:\n^";
     write(connFD, header, strlen(header));
 
     // Read each loan record and check the status
@@ -529,6 +531,143 @@ bool read_feedback_and_update_state(int connFD) {
 
     return found;
 }
+
+
+
+void unlock_manager_critical_section(struct sembuf *semOp) {
+    semOp->sem_op = 1; // Unlock operation
+    semop(semIdentifier, semOp, 1);
+}
+
+bool change_manager_password(int connFD) {
+    ssize_t readBytes, writeBytes;
+    char readBuffer[1000], newPassword[1000];
+
+    // Lock the critical section
+    struct sembuf semOp = {0, -1, SEM_UNDO};
+    int semopStatus = semop(semIdentifier, &semOp, 1);
+    if (semopStatus == -1) {
+        perror("Error while locking critical section");
+        return false;
+    }
+
+    // Prompt for old password
+    writeBytes = write(connFD, PASSWORD_CHANGE_OLD_PASS, strlen(PASSWORD_CHANGE_OLD_PASS));
+    if (writeBytes == -1) {
+        perror("Error writing PASSWORD_CHANGE_OLD_PASS message to client!");
+        unlock_manager_critical_section(&semOp);
+        return false;
+    }
+
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+    if (readBytes == -1) {
+        perror("Error reading old password response from client");
+        unlock_manager_critical_section(&semOp);
+        return false;
+    }
+
+    if (strcmp(readBuffer, loggedInManager.password) == 0) { // Check if old password matches
+        // Prompt for new password
+        writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS));
+        if (writeBytes == -1) {
+            perror("Error writing PASSWORD_CHANGE_NEW_PASS message to client!");
+            unlock_manager_critical_section(&semOp);
+            return false;
+        }
+        
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error reading new password response from client");
+            unlock_manager_critical_section(&semOp);
+            return false;
+        }
+
+        strcpy(newPassword, readBuffer); // Store new password
+
+        // Prompt for re-entering new password
+        writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE));
+        if (writeBytes == -1) {
+            perror("Error writing PASSWORD_CHANGE_NEW_PASS_RE message to client!");
+            unlock_manager_critical_section(&semOp);
+            return false;
+        }
+
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error reading new password re-enter response from client");
+            unlock_manager_critical_section(&semOp);
+            return false;
+        }
+
+        if (strcmp(readBuffer, newPassword) == 0) { // Check if new and re-entered passwords match
+            // Update password
+            strcpy(loggedInManager.password, newPassword); 
+
+            // Open employee data file to update the record
+            int employeeFileDescriptor = open(EMPLOYEE_FILE, O_WRONLY);
+            if (employeeFileDescriptor == -1) {
+                perror("Error opening employee file!");
+                unlock_manager_critical_section(&semOp);
+                return false;
+            }
+
+            off_t offset = lseek(employeeFileDescriptor, loggedInManager.id * sizeof(struct Employee), SEEK_SET);
+            if (offset == -1) {
+                perror("Error seeking to the employee record!");
+                close(employeeFileDescriptor);
+                unlock_manager_critical_section(&semOp);
+                return false;
+            }
+
+            struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
+            int lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
+            if (lockingStatus == -1) {
+                perror("Error obtaining write lock on employee record!");
+                close(employeeFileDescriptor);
+                unlock_manager_critical_section(&semOp);
+                return false;
+            }
+
+            // Write the updated employee record
+            writeBytes = write(employeeFileDescriptor, &loggedInManager, sizeof(struct Employee));
+            if (writeBytes == -1) {
+                perror("Error storing updated employee password into employee record!");
+                lock.l_type = F_UNLCK; // Unlock record
+                fcntl(employeeFileDescriptor, F_SETLK, &lock);
+                close(employeeFileDescriptor);
+                unlock_manager_critical_section(&semOp);
+                return false;
+            }
+
+            lock.l_type = F_UNLCK; // Unlock record
+            fcntl(employeeFileDescriptor, F_SETLK, &lock);
+            close(employeeFileDescriptor);
+
+            writeBytes = write(connFD, PASSWORD_CHANGE_SUCCESS, strlen(PASSWORD_CHANGE_SUCCESS));
+            readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+            unlock_manager_critical_section(&semOp);
+            return true;
+        } else {
+            // New passwords don't match
+            writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS_INVALID, strlen(PASSWORD_CHANGE_NEW_PASS_INVALID));
+            readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        }
+    } else {
+        // Old password is incorrect
+        writeBytes = write(connFD, PASSWORD_CHANGE_OLD_PASS_INVALID, strlen(PASSWORD_CHANGE_OLD_PASS_INVALID));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    }
+
+    unlock_manager_critical_section(&semOp);
+    return false;
+}
+
+
+
 
 
 #endif
