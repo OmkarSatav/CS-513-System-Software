@@ -40,7 +40,9 @@ bool manager_operation_handler(int connFD) {
 
         bzero(writeBuffer, sizeof(writeBuffer));
         strcpy(writeBuffer, MANAGER_LOGIN_SUCCESS); 
+        
         while (1) {
+            bzero(writeBuffer, sizeof(writeBuffer));
             strcat(writeBuffer, "\n");
             strcat(writeBuffer, MANAGER_MENU); 
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
@@ -67,15 +69,19 @@ bool manager_operation_handler(int connFD) {
                     break;
                 case 3:
                     send_loan_details_to_manager(connFD);
-                    assign_loan_to_employee(connFD);
                     break;
                 case 4:
-                    read_feedback_ids_with_state_0(connFD); 
-                    read_feedback_and_update_state(connFD);
+                    assign_loan_to_employee(connFD);
                     break;
-                case 5:
-                    change_manager_password(connFD); // Implement this function
-                    break;
+                // case 4:
+                //     read_feedback_ids_with_state_0(connFD); 
+                //     break;
+                // case 5:
+                //     read_feedback_and_update_state(connFD);
+                //     break;
+                // case 5:
+                //     change_manager_password(connFD); // Implement this function
+                //     break;
                 case 6:
                     writeBytes = write(connFD, "You have logged out.\n", 22);
                     return; // Logout
@@ -232,11 +238,11 @@ bool assign_loan_to_employee(int connFD) {
     char readBuffer[500];
     ssize_t readBytes, writeBytes;
 
-    // Prompt the client to enter the loan ID and employee ID
+    // Prompt the client to enter the loan ID
     const char *promptMessage = "Please enter the loan ID you want to assign: ";
     writeBytes = write(connFD, promptMessage, strlen(promptMessage));
     if (writeBytes == -1) {
-        perror("Error sending prompt to client");
+        perror("Error sending loan ID prompt to client");
         return false;
     }
 
@@ -247,14 +253,14 @@ bool assign_loan_to_employee(int connFD) {
         perror("Error reading loan ID from client");
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Ensure null-termination
+    readBuffer[readBytes] = '\0'; // Null-terminate the input
     int loanID = atoi(readBuffer); // Convert loan ID to integer
 
     // Prompt for employee ID
     promptMessage = "Please enter the employee ID to assign the loan: ";
     writeBytes = write(connFD, promptMessage, strlen(promptMessage));
     if (writeBytes == -1) {
-        perror("Error sending prompt to client");
+        perror("Error sending employee ID prompt to client");
         return false;
     }
 
@@ -265,9 +271,10 @@ bool assign_loan_to_employee(int connFD) {
         perror("Error reading employee ID from client");
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Ensure null-termination
+    readBuffer[readBytes] = '\0'; // Null-terminate the input
     int employeeID = atoi(readBuffer); // Convert employee ID to integer
 
+    // Open loan record file for reading and writing
     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDWR);
     if (loanFileDescriptor == -1) {
         perror("Error opening loan records file");
@@ -280,55 +287,54 @@ bool assign_loan_to_employee(int connFD) {
     ssize_t readBytesLoan;
     bool loanFound = false;
 
-    // Read through the loan records to find the loan with the specified loanID
+    // Iterate through the loan records to find the loan with the given loanID
     while ((readBytesLoan = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
         if (loan.loanID == loanID) {
             loanFound = true;
 
-            // Check if the loan is currently assigned to the manager
+            // Check if the loan is currently assigned to the manager (status 0)
             if (loan.status == 0) {
-                // Update the loan status to 1 (assigned to employee)
-                loan.status = 1; // Assigning to employee
-                loan.empID = employeeID; // Set the empID to the assigned employee ID
+                // Update loan to be assigned to the employee (status 1)
+                loan.status = 1;
+                loan.empID = employeeID; // Assign employee ID
 
-                // Move the file pointer back to the position of the loan record
+                // Seek back to the position of the loan record
                 off_t offset = lseek(loanFileDescriptor, -sizeof(struct Loan), SEEK_CUR);
                 if (offset == -1) {
-                    perror("Error seeking to loan record");
+                    perror("Error seeking loan record for update");
                     close(loanFileDescriptor);
                     return false;
                 }
 
-                // Write lock to ensure exclusive access while updating the loan status
+                // Lock the loan record to update
                 struct flock writeLock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Loan), getpid()};
                 if (fcntl(loanFileDescriptor, F_SETLKW, &writeLock) == -1) {
-                    perror("Error obtaining write lock on Loan file");
+                    perror("Error locking loan record for writing");
                     close(loanFileDescriptor);
                     return false;
                 }
 
-                // Update the loan record in the file
+                // Write the updated loan record
                 if (write(loanFileDescriptor, &loan, sizeof(struct Loan)) == -1) {
-                    perror("Error writing updated Loan record to file");
+                    perror("Error updating loan record");
                     writeLock.l_type = F_UNLCK;
                     fcntl(loanFileDescriptor, F_SETLK, &writeLock);
                     close(loanFileDescriptor);
                     return false;
                 }
 
-                // Release the write lock
+                // Unlock the record after updating
                 writeLock.l_type = F_UNLCK;
                 fcntl(loanFileDescriptor, F_SETLK, &writeLock);
 
-                // Send success message back to the client
+                // Send success message to client
                 const char *successMessage = "Loan has been successfully assigned to the employee.\n";
                 write(connFD, successMessage, strlen(successMessage));
             } else {
-                // If the loan status is not 0, it means it's already assigned or processed
-                const char *errorMessage = "Loan is already assigned to another employee or processed.\n";
+                const char *errorMessage = "Loan is already assigned or processed.\n";
                 write(connFD, errorMessage, strlen(errorMessage));
             }
-            break; // Exit loop once the loan is found
+            break; // Loan found and processed, exit loop
         }
     }
 
@@ -339,8 +345,9 @@ bool assign_loan_to_employee(int connFD) {
 
     // Close the loan file descriptor
     close(loanFileDescriptor);
-    return true;
+    return loanFound;
 }
+
 
 
 
@@ -359,12 +366,17 @@ void send_loan_details_to_manager(int connFD) {
     char buffer[500]; // Buffer for sending loan details
     int count = 0; // To count the number of loans
 
-    // Prepare header for the loan details
-    const char *header = "Loans Assigned to Manager:\n^";
-    write(connFD, header, strlen(header));
-
+    // // Prepare header for the loan details
+    // const char *header = "Loans Assigned to Manager:\n";
+    
+    // write(connFD, header, strlen(header));
+    // char dummyBuffer[256];
+    // bzero(dummyBuffer, sizeof(dummyBuffer));
+    // read(connFD, dummyBuffer, sizeof(dummyBuffer)); 
+    
     // Read each loan record and check the status
     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
+        printf("Inside the loan file");
         if (loan.status == 0) { // Only process loans assigned to the manager
             // Prepare loan detail message
             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %ld\n",
@@ -387,6 +399,107 @@ void send_loan_details_to_manager(int connFD) {
     const char *endMessage = "End of loan details. Press Enter to continue.\n";
     write(connFD, endMessage, strlen(endMessage));
 }
+
+
+
+
+
+
+
+// void send_loan_details_to_manager(int connFD) {
+//     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
+//     if (loanFileDescriptor == -1) {
+//         perror("Error opening loan records file");
+//         const char *errorMessage = "Unable to access loan records.\n";
+//         write(connFD, errorMessage, strlen(errorMessage));
+//         return;
+//     }
+
+//     struct Loan loan;
+//     ssize_t readBytes;
+//     char buffer[500];
+//     int count = 0;
+
+//     // Send header for loan details
+//     const char *header = "Loans Assigned to Manager:\n^";
+//     write(connFD, header, strlen(header));
+
+//     // Iterate through the loan records and send details of loans assigned to the manager (status 0)
+//     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
+//         if (loan.status == 0) {
+//             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %d\n",
+//                      loan.loanID, loan.custID, loan.amount);
+//             write(connFD, buffer, strlen(buffer));
+//             count++;
+//         }
+//     }
+
+//     // If no loans are found
+//     if (count == 0) {
+//         const char *noLoansMessage = "No loans assigned to manager.\n";
+//         write(connFD, noLoansMessage, strlen(noLoansMessage));
+//     }
+
+//     // Close the loan file descriptor
+//     close(loanFileDescriptor);
+
+//     // Send a message to indicate the end of loan details without needing to wait for Enter
+//     const char *endMessage = "End of loan details. You may proceed with your next action.\n^";
+//     write(connFD, endMessage, strlen(endMessage));
+
+//     char dummyBuffer[256];
+//     bzero(dummyBuffer, sizeof(dummyBuffer));
+//     read(connFD, dummyBuffer, sizeof(dummyBuffer)); 
+
+// }
+
+
+
+
+
+
+
+// void send_loan_details_to_manager(int connFD) {
+//     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
+//     if (loanFileDescriptor == -1) {
+//         perror("Error opening loan records file");
+//         const char *errorMessage = "Unable to access loan records.\n";
+//         write(connFD, errorMessage, strlen(errorMessage));
+//         return;
+//     }
+
+//     struct Loan loan;
+//     ssize_t readBytes;
+//     char buffer[500];
+//     int count = 0;
+
+//     // Send header for loan details
+//     const char *header = "Loans Assigned to Manager:\n^";
+//     write(connFD, header, strlen(header));
+
+//     // Iterate through the loan records and send details of loans assigned to the manager (status 0)
+//     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
+//         if (loan.status == 0) {
+//             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %d\n",
+//                      loan.loanID, loan.custID, loan.amount);
+//             write(connFD, buffer, strlen(buffer));
+//             count++;
+//         }
+//     }
+
+//     // If no loans are found
+//     if (count == 0) {
+//         const char *noLoansMessage = "No loans assigned to manager.\n";
+//         write(connFD, noLoansMessage, strlen(noLoansMessage));
+//     }
+
+//     // Close the loan file descriptor
+//     close(loanFileDescriptor);
+
+//     // Send a message to indicate the end of loan details
+//     const char *endMessage = "End of loan details. Press Enter to continue.\n";
+//     write(connFD, endMessage, strlen(endMessage));
+// }
 
 
 
@@ -422,6 +535,8 @@ bool read_feedback_ids_with_state_0(int connFD) {
 
     return true;
 }
+
+
 
 bool read_feedback_and_update_state(int connFD) {
     char readBuffer[100];
@@ -513,6 +628,9 @@ bool read_feedback_and_update_state(int connFD) {
             const char *successMessage = "Feedback has been successfully marked as read.\n";
             write(connFD, successMessage, strlen(successMessage));
 
+            // Clear input buffer to avoid needing to press Enter
+            while (getchar() != '\n'); // This consumes any leftover newline characters
+
             found = true;
             break;
         }
@@ -529,7 +647,6 @@ bool read_feedback_and_update_state(int connFD) {
 
     return found;
 }
-
 
 
 void unlock_manager_critical_section(struct sembuf *semOp) {
@@ -663,7 +780,6 @@ bool change_manager_password(int connFD) {
     unlock_manager_critical_section(&semOp);
     return false;
 }
-
 
 
 

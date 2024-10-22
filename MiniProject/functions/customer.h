@@ -7,6 +7,7 @@
 #include "./server-constants.h"
 #include "../recordtypes/loan.h"
 #include "../recordtypes/feedback.h"
+#include "../recordtypes/transaction.h"
 
 struct Customer loggedInCustomer;
 
@@ -794,13 +795,13 @@ bool unlock_critical_section(struct sembuf *semOp)
 
 
 
-// Function to apply for a loan
+
 bool apply_loan(int connFD) {
     char readBuffer[500];
     ssize_t readBytes, writeBytes;
 
     struct Account account;
-    account.accountNumber = loggedInCustomer.account;  // Assuming loggedInCustomer is defined
+    account.accountNumber = loggedInCustomer.account;
 
     // Retrieve account details
     if (!get_account_details(connFD, &account)) {
@@ -810,7 +811,7 @@ bool apply_loan(int connFD) {
     // Check if the account is active
     if (!account.active) {
         write(connFD, "Account is deactivated.\n", strlen("Account is deactivated.\n"));
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read to handle client acknowledgment
         return false;
     }
 
@@ -831,7 +832,7 @@ bool apply_loan(int connFD) {
         perror("Error reading loan amount from client");
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Ensure null-termination
+    readBuffer[readBytes] = '\0'; // Null-terminate
 
     // Convert the loan amount to an integer
     loanAmount = atoi(readBuffer);
@@ -842,7 +843,7 @@ bool apply_loan(int connFD) {
     }
 
     // Open the loans file for reading and writing, create if it does not exist
-    int loanFileDescriptor = open(LOAN_RECORD_FILE, O_CREAT | O_RDWR, S_IRWXU);
+    int loanFileDescriptor = open(LOAN_RECORD_FILE, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (loanFileDescriptor == -1) {
         perror("Error opening loans file for reading/writing");
         const char *errorMessage = "Internal error. Cannot access loan records.\n";
@@ -866,7 +867,7 @@ bool apply_loan(int connFD) {
 
         // Read the last loan record to determine the new loan ID
         readBytes = read(loanFileDescriptor, &lastLoan, sizeof(struct Loan));
-        if (readBytes == -1) {
+        if (readBytes == -1 || readBytes != sizeof(struct Loan)) {
             perror("Error reading last loan record");
             close(loanFileDescriptor);
             return false;
@@ -878,7 +879,7 @@ bool apply_loan(int connFD) {
 
     // Set the new loan details
     newLoan.amount = loanAmount;
-    newLoan.custID = loggedInCustomer.account; // Assuming loggedInCustomer is defined
+    newLoan.custID = loggedInCustomer.account;
     newLoan.status = 0; // Initial status: unassigned
     newLoan.empID = -1; // No employee assigned yet
 
@@ -924,10 +925,6 @@ bool apply_loan(int connFD) {
 
 
 
-
-
-
-
 bool write_feedback(int connFD) {
     char readBuffer[500];
     ssize_t readBytes, writeBytes;
@@ -951,8 +948,8 @@ bool write_feedback(int connFD) {
     newFeedback.account = loggedInCustomer.account; // Setting account number
     newFeedback.state = 0; // Setting state
 
-    // Open the feedback file
-    int feedbackFileDescriptor = open("records/feedback.bank", O_CREAT | O_RDWR, S_IRWXU);
+    // Open the feedback file with append mode
+    int feedbackFileDescriptor = open("records/feedback.bank", O_CREAT | O_RDWR | O_APPEND, S_IRWXU);
     if (feedbackFileDescriptor == -1) {
         perror("Error opening feedback file!");
         return false;
@@ -1020,6 +1017,9 @@ bool write_feedback(int connFD) {
     strncpy(newFeedback.message, readBuffer, sizeof(newFeedback.message) - 1);
     newFeedback.message[sizeof(newFeedback.message) - 1] = '\0';
 
+    // Explicitly seek to the end before writing
+    lseek(feedbackFileDescriptor, 0, SEEK_END);
+
     // Write lock to ensure exclusive access while adding the new feedback
     struct flock writeLock = {F_WRLCK, SEEK_END, 0, 0, getpid()};
     if (fcntl(feedbackFileDescriptor, F_SETLKW, &writeLock) == -1) {
@@ -1048,6 +1048,7 @@ bool write_feedback(int connFD) {
 }
 
 
+
 int get_new_transaction_id() {
     static int transactionID = 0;
     // Increment the transaction ID for each new transaction
@@ -1055,63 +1056,106 @@ int get_new_transaction_id() {
 }
 
 
+
+
+
+
+
+
 int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
-    char transactionBuffer[1024];
-    char operationType[10];
-    time_t now = time(NULL);
-    struct tm *local = localtime(&now);
-
-    // Determine the operation type (0 = Withdraw, 1 = Deposit)
-    if (operation == 0) {
-        strcpy(operationType, "Deposit");
-    } else if (operation == 1) {
-        strcpy(operationType, "Withdraw");
-    }else if(operation == 2){
-        strcpy(operationType, "Transfer");
-    }
-
-    long difference = afterBalance - beforeBalance;
-
+    struct Transaction transaction;
     // Get the unique transaction ID
-    int transactionID = get_new_transaction_id();
+    transaction.transactionID = get_new_transaction_id();
+    transaction.accountNumber = accountNumber;
+    transaction.operation = operation; // 0 = Withdraw, 1 = Deposit
+    transaction.oldBalance = beforeBalance;
+    transaction.newBalance = afterBalance;
+    transaction.receiverAccNumber = receiverAccountNumber;
+    transaction.transactionTime = time(NULL); // Get current time
 
-    // Format the transaction log with account number and other details
-    snprintf(transactionBuffer, sizeof(transactionBuffer),
-             "Transaction ID: %d\n"
-             "Account ID: %d\n"
-             "Details of transaction:\n"
-             "\tDate: %02d:%02d %02d/%02d/%d\n"
-             "\tOperation: %s\n"
-             "\tSender Account ID: %d\n"
-             "\tReceiver Account ID: %d\n"
-             "\tBalance -\n"
-             "\t\tBefore: %ld\n"
-             "\t\tAfter: %ld\n"
-             "\t\tDifference: %ld\n\n",
-             transactionID, 
-             accountNumber, 
-             local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
-             operationType, 
-             accountNumber, // Sender Account (same as depositor's account)
-             receiverAccountNumber, // Receiver Account
-             beforeBalance, afterBalance, difference);
-
-    // Write the transaction to the file
+    // Write the transaction to the file in binary
     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
     if (transactionFileDescriptor == -1) {
         perror("Error opening transaction file");
         return -1;
     }
 
-    if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
+    if (write(transactionFileDescriptor, &transaction, sizeof(struct Transaction)) == -1) {
         perror("Error writing transaction to file");
         close(transactionFileDescriptor);
         return -1;
     }
 
     close(transactionFileDescriptor);
-    return transactionID;
+    return transaction.transactionID; // Return the transaction ID
 }
+
+
+
+
+
+
+
+///////////// this is latest version write.
+
+
+// int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
+//     char transactionBuffer[1024];
+//     char operationType[10];
+//     time_t now = time(NULL);
+//     struct tm *local = localtime(&now);
+
+//     // Determine the operation type (0 = Withdraw, 1 = Deposit)
+//     if (operation == 0) {
+//         strcpy(operationType, "Deposit");
+//     } else if (operation == 1) {
+//         strcpy(operationType, "Withdraw");
+//     }else if(operation == 2){
+//         strcpy(operationType, "Transfer");
+//     }
+
+//     long difference = afterBalance - beforeBalance;
+
+//     // Get the unique transaction ID
+//     int transactionID = get_new_transaction_id();
+
+//     // Format the transaction log with account number and other details
+//     snprintf(transactionBuffer, sizeof(transactionBuffer),
+//              "Transaction ID: %d\n"
+//              "Account ID: %d\n"
+//              "Details of transaction:\n"
+//              "\tDate: %02d:%02d %02d/%02d/%d\n"
+//              "\tOperation: %s\n"
+//              "\tSender Account ID: %d\n"
+//              "\tReceiver Account ID: %d\n"
+//              "\tBalance -\n"
+//              "\t\tBefore: %ld\n"
+//              "\t\tAfter: %ld\n"
+//              "\t\tDifference: %ld\n\n",
+//              transactionID, 
+//              accountNumber, 
+//              local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
+//              operationType, 
+//              accountNumber, // Sender Account (same as depositor's account)
+//              receiverAccountNumber, // Receiver Account
+//              beforeBalance, afterBalance, difference);
+
+//     // Write the transaction to the file
+//     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
+//     if (transactionFileDescriptor == -1) {
+//         perror("Error opening transaction file");
+//         return -1;
+//     }
+
+//     if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
+//         perror("Error writing transaction to file");
+//         close(transactionFileDescriptor);
+//         return -1;
+//     }
+
+//     close(transactionFileDescriptor);
+//     return transactionID;
+// }
 
 
 

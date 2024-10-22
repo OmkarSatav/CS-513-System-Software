@@ -528,9 +528,10 @@ bool get_customer_details(int connFD, int customerID)
 
 bool get_transaction_details(int connFD, int accountNumber) {
     ssize_t readBytes, writeBytes;
-    char readBuffer[1000], writeBuffer[10000] = {0}; // Initialize to empty
-    char tempBuffer[1000];
-    struct Account account;
+    char readBuffer[1000];
+    char writeBuffer[10000] = {0}; // Initialize to empty
+    struct Transaction transaction;
+    int transactionFileDescriptor;
 
     if (accountNumber == -1) {
         writeBytes = write(connFD, "Enter your account number: ", 27);
@@ -546,72 +547,65 @@ bool get_transaction_details(int connFD, int accountNumber) {
             return false;
         }
 
-        account.accountNumber = atoi(readBuffer);
-    } else {
-        account.accountNumber = accountNumber;
+        accountNumber = atoi(readBuffer);
     }
 
-    if (get_account_details(connFD, &account)) {
-        FILE *transactionFile = fopen(TRANSACTION_FILE, "r");
-        if (transactionFile == NULL) {
-            perror("Error while opening transaction file!");
-            write(connFD, "No transactions found for your account.", 40);
-            read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+    // Open the transaction file in read mode
+    transactionFileDescriptor = open(TRANSACTION_FILE, O_RDONLY);
+    if (transactionFileDescriptor == -1) {
+        perror("Error opening transaction file!");
+        write(connFD, "No transactions found for your account.", 40);
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    }
+
+    bool transactionFound = false;
+    while (read(transactionFileDescriptor, &transaction, sizeof(struct Transaction)) > 0) {
+        if (transaction.accountNumber == accountNumber) {
+            transactionFound = true;
+
+            // Prepare transaction details to send back to the client
+            snprintf(writeBuffer + strlen(writeBuffer), sizeof(writeBuffer) - strlen(writeBuffer),
+                     "Transaction ID: %d\n"
+                     "Account ID: %d\n"
+                     "Date: %s" // Placeholder for actual date formatting
+                     "Operation: %s\n"
+                     "Sender Account ID: %d\n"
+                     "Receiver Account ID: %d\n"
+                     "Balance -\n"
+                     "\tBefore: %ld\n"
+                     "\tAfter: %ld\n"
+                     "\tDifference: %ld\n\n",
+                     transaction.transactionID,
+                     transaction.accountNumber,
+                     ctime(&transaction.transactionTime), // Convert time_t to string
+                     transaction.operation ? "Deposit" : "Withdraw", // Adjust based on operation
+                     transaction.accountNumber, // Sender Account (same as accountNumber)
+                     transaction.receiverAccNumber,
+                     transaction.oldBalance,
+                     transaction.newBalance,
+                     transaction.newBalance - transaction.oldBalance); // Calculate difference
+        }
+    }
+
+    close(transactionFileDescriptor);
+
+    if (!transactionFound) {
+        write(connFD, "No transactions found for your account.", 40);
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        return false;
+    } else {
+        strncat(writeBuffer, "^", sizeof(writeBuffer) - strlen(writeBuffer) - 1);  // Append a termination character
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1) {
+            perror("Error writing transaction details to client!");
             return false;
         }
-
-        bool transactionFound = false;
-        char transactionBuffer[1000];
-
-        // Read the transaction file line by line
-        while (fgets(tempBuffer, sizeof(tempBuffer), transactionFile) != NULL) {
-            // Check for "Account ID:" line to find the relevant transactions
-            if (strstr(tempBuffer, "Account ID:")) {
-                int loggedAccount = atoi(strstr(tempBuffer, "Account ID:") + 11);
-                
-                // Only proceed if the logged account matches the account number
-                if (loggedAccount == account.accountNumber) {
-                    transactionFound = true;
-
-                    // Start building the transaction details
-                    snprintf(transactionBuffer, sizeof(transactionBuffer), "%s", tempBuffer); // Account ID line
-
-                    // Read and append the next lines for transaction details
-                    for (int i = 0; i < 10; ++i) {
-                        if (fgets(tempBuffer, sizeof(tempBuffer), transactionFile)) {
-                            strncat(transactionBuffer, tempBuffer, sizeof(transactionBuffer) - strlen(transactionBuffer) - 1);
-                        } else {
-                            break; // Exit if fewer than 10 lines remain
-                        }
-                    }
-
-                    // Append transaction details to writeBuffer
-                    strncat(writeBuffer, transactionBuffer, sizeof(writeBuffer) - strlen(writeBuffer) - 1);
-                }
-            }
-        }
-
-        fclose(transactionFile);
-
-        if (!transactionFound) {
-            write(connFD, "No transactions found for your account.", 40);
-            read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-            return false;
-        } else {
-            strncat(writeBuffer, "^", sizeof(writeBuffer) - strlen(writeBuffer) - 1);  // Append a termination character
-            writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-            if (writeBytes == -1) {
-                perror("Error writing transaction details to client!");
-                return false;
-            }
-            read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        }
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     }
 
     return true; // Indicate success
 }
-
-
 
 
 bool add_account(int connFD)
