@@ -17,8 +17,6 @@ int semIdentifier;
 // Function Prototypes =================================
 bool update_account_in_file(struct Account *account);
 bool change_password(int connFD);
-bool assign_loan_to_employee(int connFD);
-void send_loan_details_to_manager(int connFD);
 bool handle_loan_decision(int connFD);
 bool approve_or_reject_loan(int connFD);
 void check_loan_status(int connFD);
@@ -118,9 +116,9 @@ void send_loans_assigned_to_employee(int connFD) {
     char buffer[500]; // Buffer for sending loan details
     int count = 0; // To count the number of loans assigned to the employee
 
-    // Prepare header for the loan details
-    const char *header = "Loans Assigned to You:\n";
-    write(connFD, header, strlen(header));
+    // // Prepare header for the loan details
+    // const char *header = "Loans Assigned to You:\n";
+    // write(connFD, header, strlen(header));
 
     // Read each loan record and check the status and employee ID
     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
@@ -150,7 +148,6 @@ void send_loans_assigned_to_employee(int connFD) {
 
 
 
-// Function to approve or reject a loan
 bool approve_or_reject_loan(int connFD) {
     // Prompt for the loan ID
     const char *promptMessage = "Please enter the Loan ID to approve or reject: ";
@@ -241,7 +238,6 @@ bool approve_or_reject_loan(int connFD) {
     close(loanFileDescriptor);
     return true;
 }
-
 
 
 

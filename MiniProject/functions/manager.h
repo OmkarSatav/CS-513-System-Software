@@ -76,9 +76,9 @@ bool manager_operation_handler(int connFD) {
                 // case 4:
                 //     read_feedback_ids_with_state_0(connFD); 
                 //     break;
-                // case 5:
-                //     read_feedback_and_update_state(connFD);
-                //     break;
+                case 5:
+                    read_feedback_and_update_state(connFD);
+                    break;
                 // case 5:
                 //     change_manager_password(connFD); // Implement this function
                 //     break;
@@ -350,8 +350,6 @@ bool assign_loan_to_employee(int connFD) {
 
 
 
-
-
 void send_loan_details_to_manager(int connFD) {
     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
     if (loanFileDescriptor == -1) {
@@ -395,111 +393,9 @@ void send_loan_details_to_manager(int connFD) {
     // Close the loan file descriptor
     close(loanFileDescriptor);
 
-    // Send a termination message to indicate the end of loan details
-    const char *endMessage = "End of loan details. Press Enter to continue.\n";
+    const char *endMessage = "End of loan details.\n"; // Change this message as needed
     write(connFD, endMessage, strlen(endMessage));
 }
-
-
-
-
-
-
-
-// void send_loan_details_to_manager(int connFD) {
-//     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
-//     if (loanFileDescriptor == -1) {
-//         perror("Error opening loan records file");
-//         const char *errorMessage = "Unable to access loan records.\n";
-//         write(connFD, errorMessage, strlen(errorMessage));
-//         return;
-//     }
-
-//     struct Loan loan;
-//     ssize_t readBytes;
-//     char buffer[500];
-//     int count = 0;
-
-//     // Send header for loan details
-//     const char *header = "Loans Assigned to Manager:\n^";
-//     write(connFD, header, strlen(header));
-
-//     // Iterate through the loan records and send details of loans assigned to the manager (status 0)
-//     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
-//         if (loan.status == 0) {
-//             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %d\n",
-//                      loan.loanID, loan.custID, loan.amount);
-//             write(connFD, buffer, strlen(buffer));
-//             count++;
-//         }
-//     }
-
-//     // If no loans are found
-//     if (count == 0) {
-//         const char *noLoansMessage = "No loans assigned to manager.\n";
-//         write(connFD, noLoansMessage, strlen(noLoansMessage));
-//     }
-
-//     // Close the loan file descriptor
-//     close(loanFileDescriptor);
-
-//     // Send a message to indicate the end of loan details without needing to wait for Enter
-//     const char *endMessage = "End of loan details. You may proceed with your next action.\n^";
-//     write(connFD, endMessage, strlen(endMessage));
-
-//     char dummyBuffer[256];
-//     bzero(dummyBuffer, sizeof(dummyBuffer));
-//     read(connFD, dummyBuffer, sizeof(dummyBuffer)); 
-
-// }
-
-
-
-
-
-
-
-// void send_loan_details_to_manager(int connFD) {
-//     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
-//     if (loanFileDescriptor == -1) {
-//         perror("Error opening loan records file");
-//         const char *errorMessage = "Unable to access loan records.\n";
-//         write(connFD, errorMessage, strlen(errorMessage));
-//         return;
-//     }
-
-//     struct Loan loan;
-//     ssize_t readBytes;
-//     char buffer[500];
-//     int count = 0;
-
-//     // Send header for loan details
-//     const char *header = "Loans Assigned to Manager:\n^";
-//     write(connFD, header, strlen(header));
-
-//     // Iterate through the loan records and send details of loans assigned to the manager (status 0)
-//     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
-//         if (loan.status == 0) {
-//             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %d\n",
-//                      loan.loanID, loan.custID, loan.amount);
-//             write(connFD, buffer, strlen(buffer));
-//             count++;
-//         }
-//     }
-
-//     // If no loans are found
-//     if (count == 0) {
-//         const char *noLoansMessage = "No loans assigned to manager.\n";
-//         write(connFD, noLoansMessage, strlen(noLoansMessage));
-//     }
-
-//     // Close the loan file descriptor
-//     close(loanFileDescriptor);
-
-//     // Send a message to indicate the end of loan details
-//     const char *endMessage = "End of loan details. Press Enter to continue.\n";
-//     write(connFD, endMessage, strlen(endMessage));
-// }
 
 
 
@@ -513,20 +409,36 @@ bool read_feedback_ids_with_state_0(int connFD) {
     }
 
     struct Feedback feedback;
-    char buffer[100]; // Buffer to store the ID and send to the client
+    char buffer[1024]; // Buffer to store all the unread feedback IDs to send to the client
+    bzero(buffer, sizeof(buffer)); // Clear the buffer
+    bool hasUnreadFeedback = false; // Track if any unread feedback exists
 
     // Read each feedback record from the file
     while (read(feedbackFileDescriptor, &feedback, sizeof(struct Feedback)) == sizeof(struct Feedback)) {
         if (feedback.state == 0) {
-            // Prepare the message to send the feedback ID to the client
-            snprintf(buffer, sizeof(buffer), "Unread Feedback ID: %d\n", feedback.id);
+            hasUnreadFeedback = true;
 
-            // Send the ID to the client
-            if (write(connFD, buffer, strlen(buffer)) == -1) {
-                perror("Error sending feedback ID to client");
-                close(feedbackFileDescriptor);
-                return false;
-            }
+            // Append the feedback ID to the buffer
+            char tempBuffer[100];
+            snprintf(tempBuffer, sizeof(tempBuffer), "Unread Feedback ID: %d\n", feedback.id);
+            strcat(buffer, tempBuffer);
+        }
+    }
+
+    // If there are unread feedbacks, send them all at once
+    if (hasUnreadFeedback) {
+        if (write(connFD, buffer, strlen(buffer)) == -1) {
+            perror("Error sending feedback IDs to client");
+            close(feedbackFileDescriptor);
+            return false;
+        }
+    } else {
+        // If no unread feedback is found, send a message indicating so
+        char noFeedbackMessage[] = "No unread feedback available.\n";
+        if (write(connFD, noFeedbackMessage, strlen(noFeedbackMessage)) == -1) {
+            perror("Error sending no feedback message to client");
+            close(feedbackFileDescriptor);
+            return false;
         }
     }
 
@@ -535,7 +447,6 @@ bool read_feedback_ids_with_state_0(int connFD) {
 
     return true;
 }
-
 
 
 bool read_feedback_and_update_state(int connFD) {
@@ -625,11 +536,14 @@ bool read_feedback_and_update_state(int connFD) {
             fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
 
             // Send confirmation back to the client
-            const char *successMessage = "Feedback has been successfully marked as read.\n";
-            write(connFD, successMessage, strlen(successMessage));
+            // const char *successMessage = "Feedback has been successfully marked as read.\n";
+            // write(connFD, successMessage, strlen(successMessage));
 
-            // Clear input buffer to avoid needing to press Enter
-            while (getchar() != '\n'); // This consumes any leftover newline characters
+            // // Optionally, prompt the user for the next action
+            // const char *nextActionMessage = "You may proceed with your next action: ";
+            // write(connFD, nextActionMessage, strlen(nextActionMessage));
+
+
 
             found = true;
             break;
