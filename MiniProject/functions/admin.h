@@ -179,24 +179,26 @@ bool modify_employee_info(int connFD) {
 
 
 
-bool admin_operation_handler(int connFD)
-{
+bool admin_operation_handler(int connFD) {
+    if (login_handler(true, connFD, NULL)) {
+        ssize_t writeBytes, readBytes;            
+        char readBuffer[1000], writeBuffer[1000]; 
 
-   if (login_handler(true, connFD, NULL)) {
-    ssize_t writeBytes, readBytes;            
-    char readBuffer[1000], writeBuffer[1000]; 
-    bzero(writeBuffer, sizeof(writeBuffer));
-    strcpy(writeBuffer, ADMIN_LOGIN_SUCCESS);
+        bzero(writeBuffer, sizeof(writeBuffer));
+        strcpy(writeBuffer, ADMIN_LOGIN_SUCCESS); 
+        write(connFD, writeBuffer, strlen(writeBuffer)); // Send login success message
+        
         while (1) {
+            bzero(writeBuffer, sizeof(writeBuffer));
             strcat(writeBuffer, "\n");
-            strcat(writeBuffer, ADMIN_MENU);
+            strcat(writeBuffer, ADMIN_MENU); // Prepare the admin menu
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
             if (writeBytes == -1) {
                 perror("Error while writing ADMIN_MENU to client!");
                 return false;
             }
-            bzero(writeBuffer, sizeof(writeBuffer));
 
+            bzero(readBuffer, sizeof(readBuffer));
             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
             if (readBytes == -1) {
                 perror("Error while reading client's choice for ADMIN_MENU");
@@ -235,11 +237,14 @@ bool admin_operation_handler(int connFD)
                     exit(0);       // Exit the application
                 default:
                     writeBytes = write(connFD, "Invalid choice. Please try again.\n", 36);
+                    if (writeBytes == -1) {
+                        perror("Error sending invalid choice message to client");
+                    }
                     break; // Just notify the user and stay in the menu
             }
         }
     } else {
-    // ADMIN LOGIN FAILED
+        // ADMIN LOGIN FAILED
         const char *loginFailMessage = "Login failed. Please check your credentials and try again.\n";
         ssize_t writeBytes = write(connFD, loginFailMessage, strlen(loginFailMessage));
         if (writeBytes == -1) {
@@ -249,6 +254,9 @@ bool admin_operation_handler(int connFD)
     }
     return true;
 }
+
+
+
 
 
 void change_admin_password(int connFD) {

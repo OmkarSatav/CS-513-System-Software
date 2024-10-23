@@ -75,11 +75,8 @@ bool employee_operation_handler(int connFD) {
                     change_employee_password(connFD);
                     break;
                 case 7:
-                    writeBytes = write(connFD, "You have been successfully logged out. Thank you!\n", 48);
-                    if (writeBytes == -1) {
-                        perror("Error sending logout message to client!");
-                    }
-                    return false; // Logout
+                    write(connFD, "You have been successfully logged out. Thank you!\n", 48);
+                    return true; // Indicate that we want to return to the initial prompt
                 case 8:
                     printf("Employee is exiting the program safely...\n");
                     exit(0);

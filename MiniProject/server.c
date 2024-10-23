@@ -76,49 +76,107 @@ void main()
     close(socketFileDescriptor);
 }
 
-void connection_handler(int connectionFileDescriptor)
-{
+
+
+void connection_handler(int connectionFileDescriptor) {
     printf("Client has connected to the server!\n");
 
     char readBuffer[1000], writeBuffer[1000];
     ssize_t readBytes, writeBytes;
     int userChoice;
 
-    writeBytes = write(connectionFileDescriptor, INITIAL_PROMPT, strlen(INITIAL_PROMPT));
-    if (writeBytes == -1)
-        perror("Error while sending first prompt to the user!");
-    else
-    {
+    while (1) { // Loop to keep prompting for actions until the connection is terminated
+        writeBytes = write(connectionFileDescriptor, INITIAL_PROMPT, strlen(INITIAL_PROMPT));
+        if (writeBytes == -1) {
+            perror("Error while sending first prompt to the user!");
+            break; // Exit if there's an error sending the prompt
+        }
+
         bzero(readBuffer, sizeof(readBuffer));
         readBytes = read(connectionFileDescriptor, readBuffer, sizeof(readBuffer));
-        if (readBytes == -1)
+        if (readBytes == -1) {
             perror("Error while reading from client");
-        else if (readBytes == 0)
+            break; // Exit on read error
+        } else if (readBytes == 0) {
             printf("No data was sent by the client");
-        else
-        {
+            break; // Exit if no data is sent
+        } else {
             userChoice = atoi(readBuffer);
-            switch (userChoice)
-            {
-            case 1:
-                // Admin
-                admin_operation_handler(connectionFileDescriptor);
-                break;
-            case 2:
-                // Customer
-                customer_operation_handler(connectionFileDescriptor);
-                break;
-            case 3:
-                manager_operation_handler(connectionFileDescriptor);
-                break;
-            case 4:
-                employee_operation_handler(connectionFileDescriptor);
-                break;
-            default:
-                // Exit
-                break;
+            switch (userChoice) {
+                case 1:
+                    if (!admin_operation_handler(connectionFileDescriptor)) {
+                        return; 
+                    }
+                    break;
+                case 2:
+                    if (!customer_operation_handler(connectionFileDescriptor)) {
+                        return; 
+                    }
+                    break;
+                case 3:
+                    if (!manager_operation_handler(connectionFileDescriptor)) {
+                        continue;
+                    }
+                    break;
+                case 4:
+                    if (!employee_operation_handler(connectionFileDescriptor)) {
+                        return;
+                    }
+                    break;
+                default:
+                    printf("Invalid choice or exit.\n");
+                    break;
             }
         }
     }
     printf("Terminating connection to client!\n");
 }
+
+
+
+// void connection_handler(int connectionFileDescriptor)
+// {
+//     printf("Client has connected to the server!\n");
+
+//     char readBuffer[1000], writeBuffer[1000];
+//     ssize_t readBytes, writeBytes;
+//     int userChoice;
+
+//     writeBytes = write(connectionFileDescriptor, INITIAL_PROMPT, strlen(INITIAL_PROMPT));
+//     if (writeBytes == -1)
+//         perror("Error while sending first prompt to the user!");
+//     else
+//     {
+//         bzero(readBuffer, sizeof(readBuffer));
+//         readBytes = read(connectionFileDescriptor, readBuffer, sizeof(readBuffer));
+//         if (readBytes == -1)
+//             perror("Error while reading from client");
+//         else if (readBytes == 0)
+//             printf("No data was sent by the client");
+//         else
+//         {
+//             userChoice = atoi(readBuffer);
+//             switch (userChoice)
+//             {
+//             case 1:
+//                 // Admin
+//                 admin_operation_handler(connectionFileDescriptor);
+//                 break;
+//             case 2:
+//                 // Customer
+//                 customer_operation_handler(connectionFileDescriptor);
+//                 break;
+//             case 3:
+//                 manager_operation_handler(connectionFileDescriptor);
+//                 break;
+//             case 4:
+//                 employee_operation_handler(connectionFileDescriptor);
+//                 break;
+//             default:
+//                 // Exit
+//                 break;
+//             }
+//         }
+//     }
+//     printf("Terminating connection to client!\n");
+// }

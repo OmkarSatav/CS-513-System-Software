@@ -32,7 +32,6 @@ void unlock_manager_critical_section(struct sembuf *semOp);
 
 
 
-
 bool manager_operation_handler(int connFD) {
     if (manager_login_handler(connFD, &loggedInManager)) { 
         ssize_t writeBytes, readBytes;            
@@ -40,17 +39,17 @@ bool manager_operation_handler(int connFD) {
 
         bzero(writeBuffer, sizeof(writeBuffer));
         strcpy(writeBuffer, MANAGER_LOGIN_SUCCESS); 
+        write(connFD, writeBuffer, strlen(writeBuffer)); // Send login success message
         
         while (1) {
             bzero(writeBuffer, sizeof(writeBuffer));
             strcat(writeBuffer, "\n");
-            strcat(writeBuffer, MANAGER_MENU); 
+            strcat(writeBuffer, MANAGER_MENU); // Display manager menu
             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
             if (writeBytes == -1) {
                 perror("Error while writing MANAGER_MENU to client!");
                 return false;
             }
-            bzero(writeBuffer, sizeof(writeBuffer));
 
             bzero(readBuffer, sizeof(readBuffer));
             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
@@ -73,26 +72,23 @@ bool manager_operation_handler(int connFD) {
                 case 4:
                     assign_loan_to_employee(connFD);
                     break;
-                // case 4:
-                //     read_feedback_ids_with_state_0(connFD); 
-                //     break;
                 case 5:
+                    read_feedback_ids_with_state_0(connFD); 
+                    break;
+                case 6:
                     read_feedback_and_update_state(connFD);
                     break;
-                // case 5:
-                //     change_manager_password(connFD); // Implement this function
-                //     break;
-                case 6:
-                    writeBytes = write(connFD, "You have logged out.\n", 22);
-                    return; // Logout
                 case 7:
-                    writeBytes = write(connFD, "Exiting the application.\n", 25);
+                    change_manager_password(connFD); // Implement this function
+                    break;
+                case 8: // Logout
+                    write(connFD, "You have logged out.\n", 22);
+                    return true; // Indicate that we want to return to the initial prompt
+                case 9: // Exit
+                    write(connFD, "Exiting the application.\n", 25);
                     exit(0); // Exit the application
                 default:
-                    writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
-                    if (writeBytes == -1) {
-                        perror("Error sending invalid choice message to client!");
-                    }
+                    write(connFD, "Invalid choice! Please try again.\n", 36);
             }
         }
     } else {
@@ -101,6 +97,7 @@ bool manager_operation_handler(int connFD) {
     }
     return true;
 }
+
 
 
 
@@ -395,6 +392,7 @@ void send_loan_details_to_manager(int connFD) {
 
     const char *endMessage = "End of loan details.\n"; // Change this message as needed
     write(connFD, endMessage, strlen(endMessage));
+
 }
 
 

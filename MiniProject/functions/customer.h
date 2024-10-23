@@ -122,17 +122,15 @@ bool customer_operation_handler(int connFD)
                 case 9:
                     write_feedback(connFD);
                     break;
-                case 10:
-                    writeBytes = write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 56);
-                    return false; // Logout
-                case 11:
-                    writeBytes = write(connFD, "Exiting the application. Thank you! 🌟\n", 42);
+                     break;
+                case 10: // Logout
+                    write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 56);
+                    return true; // Indicate that we want to return to the initial prompt
+                case 11: // Exit
+                    write(connFD, "Exiting the application. Thank you! 🌟\n", 42);
                     exit(0); // Exit the application
                 default:
-                    writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
-                    if (writeBytes == -1) {
-                        perror("Error sending invalid choice message to client!");
-                    }
+                    write(connFD, "Invalid choice! Please try again.\n", 36);
             }
         }
     }
@@ -461,7 +459,7 @@ bool transfer_funds(int connFD) {
     }
 
     if (!receiverAccount.active) {
-        write(connFD, "Recipient account is deactivated!", 33);
+        write(connFD, "Recipient account is deactivated!\ntype ok ", strlen("Recipient account is deactivated!\ntype ok "));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
         unlock_critical_section(&semOp);
         return false;
@@ -907,7 +905,7 @@ bool apply_loan(int connFD) {
     // Close the file descriptor
     close(loanFileDescriptor);
 
-    // Send confirmation back to the client
+    // // Send confirmation back to the client
     const char *successMessage = "Loan application has been successfully submitted.\n";
     write(connFD, successMessage, strlen(successMessage));
 

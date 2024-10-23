@@ -541,6 +541,7 @@ bool get_transaction_details(int connFD, int accountNumber) {
         }
 
         bzero(readBuffer, sizeof(readBuffer));
+        // usleep()
         readBytes = read(connFD, readBuffer, sizeof(readBuffer));
         if (readBytes == -1) {
             perror("Error reading account number response from client!");
@@ -551,7 +552,7 @@ bool get_transaction_details(int connFD, int accountNumber) {
     }
 
     // Open the transaction file in read mode
-    transactionFileDescriptor = open(TRANSACTION_FILE, O_RDONLY);
+    transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_RDWR, 0666);
     if (transactionFileDescriptor == -1) {
         perror("Error opening transaction file!");
         write(connFD, "No transactions found for your account.", 40);
@@ -591,12 +592,12 @@ bool get_transaction_details(int connFD, int accountNumber) {
     close(transactionFileDescriptor);
 
     if (!transactionFound) {
-        write(connFD, "No transactions found for your account.", 40);
+        write(connFD, "No transactions found for your account. type ok ", strlen("No transactions found for your account. type ok "));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
         return false;
     } else {
-        strncat(writeBuffer, "^", sizeof(writeBuffer) - strlen(writeBuffer) - 1);  // Append a termination character
         writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        write(connFD,"type ok ",strlen("type ok "));
         if (writeBytes == -1) {
             perror("Error writing transaction details to client!");
             return false;

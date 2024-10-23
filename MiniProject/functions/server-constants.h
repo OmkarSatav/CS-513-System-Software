@@ -199,7 +199,7 @@
 // ========== COMMON TEXT =============================
 
 // Welcome Message
-#define INITIAL_PROMPT "Welcome to Pune Jatan Societal Bank!\nWho are you?\n1. Admin\t2. Customer\t3. Manager\t4. Employee\nPress any other number to exit\nEnter the number corresponding to your choice: "
+#define INITIAL_PROMPT "\n\nWelcome to Pune Jatan Societal Bank!\nWho are you?\n1. Admin\t2. Customer\t3. Manager\t4. Employee\nPress any other number to exit\nEnter the number corresponding to your choice: "
 
 // LOGIN
 #define LOGIN_ID "Enter your login ID: "

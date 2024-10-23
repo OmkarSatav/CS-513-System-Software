@@ -55,6 +55,18 @@ void connection_handler(int sockFD)
             perror("Error while reading from client socket!");
         else if (readBytes == 0)
             printf("No error received from server! Closing the connection to the server now!\n");
+        else if(strstr(readBuffer, "type ok") != NULL){
+             // Skip read from client
+            strncpy(tempBuffer, readBuffer, strlen(readBuffer) - 1);
+            printf("%s\n", tempBuffer);
+            scanf("%[^\n]%*c", writeBuffer);
+            writeBytes = write(sockFD, writeBuffer, strlen(writeBuffer));//dummy write
+            if (writeBytes == -1)
+            {
+                perror("Error while writing to client socket!");
+                break;
+            }
+        }
         else if (strchr(readBuffer, '^') != NULL)
         {
             // Skip read from client
