@@ -20,7 +20,7 @@ void alarmed(int signalId) {    // Signal handler function
 int main() {
     struct itimerval clock;
     
-    signal(SIGPROF, alarmed);           // Install the signal handler for SIGVTALRM.
+    signal(SIGPROF, alarmed);           // Install the signal handler for SIGPROF.
  
     clock.it_value.tv_sec = 10;        // First time expiration in 10 seconds and 10 microseconds.
     clock.it_value.tv_usec = 10;   
