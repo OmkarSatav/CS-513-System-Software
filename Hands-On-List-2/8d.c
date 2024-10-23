@@ -20,7 +20,7 @@ void timeOut(int id) {      // Signal handler for SIGALRM
 int main() {
     signal(SIGALRM, timeOut);    // Set signal handler for SIGALRM
 
-    alarm(2);                           // Set alarm for 5 seconds
+    alarm(2);                           // Set alarm for 2 seconds
 
     pause();                            // Wait for the signal
 
