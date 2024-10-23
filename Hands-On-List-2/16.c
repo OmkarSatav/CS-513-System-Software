@@ -7,28 +7,36 @@ Date: 12th Sept, 2024.
 */
 
 
-#include <unistd.h>        // For using pipe(), read(), write() and close(). 
-#include <stdio.h>         // For using Standard Input Ouput Functions like printf(); 
-#include <stdlib.h>        // For using Standar Library Funcitions like exit().
+#include <unistd.h>  // For using functions like pipe(), fork(), read(), write(), close().
+#include <stdio.h>   // For using Standard Input Output Functions like printf().
 
 int main() {
-    int fd[2];
-    char buffer[20];
+    int parentPipe[2], childPipe[2];  // Two pipes for two-way communication
 
-    pipe(fd);             // Create a pipe
+    pipe(parentPipe);            // Parent Pipe : Parent writes, Child reads
+    pipe(childPipe);            // Child Pipe : Child writes, Parent reads
 
-    if (fork()) {         // Child process
-        close(fd[1]);       // Close the write end of the pipe
+    if (!fork()) {                // Child process
+        close(parentPipe[0]);  // Close read end of the Parent pipe
+        char buffer[23];
         
-        read(fd[0], buffer, sizeof(buffer));   // Read data from the pipe
-        printf("Child received: %s\n", buffer); 
-        close(fd[0]);       // Close the read end of the pipe
-        exit(0);
-    } else {                // Parent process
-        close(fd[0]);       // Close the read end of the pipe
-        write(fd[1], "Hello World!!", 14);   // Write data to the pipe
-        close(fd[1]);       // Close the write end of the pipe
-        wait(NULL);         // Wait for child process to finish execution.
+        write(parentPipe[1], "Child : This side !!\n", 22);    // Writing message to parent through Parent pipe
+
+        close(childPipe[1]);  // Close the write end of the Child pipe
+
+        read(childPipe[0], &buffer, 23);     // Reading message from parent through Child pipe
+        
+        printf("Received from parent: %s", buffer);  
+    } else {                      // Parent process
+        close(parentPipe[1]);  // Close write end of the Parent pipe
+        char buffer[22];
+
+        read(parentPipe[0], &buffer, 22);        // Reading message from child through Parent pipe
+        printf("Received from child: %s", buffer);  
+
+        close(childPipe[0]);                    // Close the read end of the Child pipe
+
+        write(childPipe[1], "Parent : This side !!\n", 23);    // Writing message to child through Child pipe
     }
 
     return 0;
@@ -36,11 +44,11 @@ int main() {
 
 
 
-
 /*
 
 
-Child received: Hello World!!
+Received from child: Child : This side !!
+Received from parent: Parent : This side !!
 
 
 */
