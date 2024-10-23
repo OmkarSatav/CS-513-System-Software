@@ -223,18 +223,15 @@ bool admin_operation_handler(int connFD) {
                     change_admin_password(connFD);
                     break;
                 case 6: // Logout
-                    writeBytes = write(connFD, "You have successfully logged out.\n", 35);
-                    if (writeBytes == -1) {
-                        perror("Error sending logout message to client");
-                    }
+                    writeBytes = write(connFD, "You have successfully logged out.\n", strlen("You have successfully logged out.\n"));
                     return true; // Return to the main menu, keeping the connection open
                 case 7: // Exit
-                    writeBytes = write(connFD, "Exiting the application. Goodbye!\n", 34);
+                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
                     if (writeBytes == -1) {
                         perror("Error sending exit message to client");
                     }
-                    close(connFD); // Close the client connection
-                    exit(0);       // Exit the application
+                    close(connFD);  // Close the client connection
+                    return false;   // Signal that the connection should end
                 default:
                     writeBytes = write(connFD, "Invalid choice. Please try again.\n", 36);
                     if (writeBytes == -1) {

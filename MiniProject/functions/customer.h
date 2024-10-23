@@ -122,13 +122,17 @@ bool customer_operation_handler(int connFD)
                 case 9:
                     write_feedback(connFD);
                     break;
-                     break;
                 case 10: // Logout
+                    // logout_handler(connFD,loggedInCustomer.id);
                     write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 56);
                     return true; // Indicate that we want to return to the initial prompt
                 case 11: // Exit
-                    write(connFD, "Exiting the application. Thank you! 🌟\n", 42);
-                    exit(0); // Exit the application
+                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    if (writeBytes == -1) {
+                        perror("Error sending exit message to client");
+                    }
+                    close(connFD);  // Close the client connection
+                    return false;   // Signal that the connection should end
                 default:
                     write(connFD, "Invalid choice! Please try again.\n", 36);
             }

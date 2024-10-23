@@ -10,6 +10,7 @@ struct Customer
     char login[30]; 
     char password[30];
     int account; 
+    bool isLoggedIn; 
 };
 
 #endif

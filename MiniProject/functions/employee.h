@@ -78,8 +78,12 @@ bool employee_operation_handler(int connFD) {
                     write(connFD, "You have been successfully logged out. Thank you!\n", 48);
                     return true; // Indicate that we want to return to the initial prompt
                 case 8:
-                    printf("Employee is exiting the program safely...\n");
-                    exit(0);
+                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    if (writeBytes == -1) {
+                        perror("Error sending exit message to client");
+                    }
+                    close(connFD);  // Close the client connection
+                    return false;   // Signal that the connection should end
                 default:
                     writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
                     if (writeBytes == -1) {

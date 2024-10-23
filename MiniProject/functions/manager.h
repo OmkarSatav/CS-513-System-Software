@@ -85,8 +85,12 @@ bool manager_operation_handler(int connFD) {
                     write(connFD, "You have logged out.\n", 22);
                     return true; // Indicate that we want to return to the initial prompt
                 case 9: // Exit
-                    write(connFD, "Exiting the application.\n", 25);
-                    exit(0); // Exit the application
+                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    if (writeBytes == -1) {
+                        perror("Error sending exit message to client");
+                    }
+                    close(connFD);  // Close the client connection
+                    return false;   // Signal that the connection should end
                 default:
                     write(connFD, "Invalid choice! Please try again.\n", 36);
             }
@@ -325,7 +329,7 @@ bool assign_loan_to_employee(int connFD) {
                 fcntl(loanFileDescriptor, F_SETLK, &writeLock);
 
                 // Send success message to client
-                const char *successMessage = "Loan has been successfully assigned to the employee.\n";
+                const char *successMessage = "Loan has been successfully assigned to the employee.\n type ok ";
                 write(connFD, successMessage, strlen(successMessage));
             } else {
                 const char *errorMessage = "Loan is already assigned or processed.\n";
@@ -447,6 +451,9 @@ bool read_feedback_ids_with_state_0(int connFD) {
 }
 
 
+
+
+
 bool read_feedback_and_update_state(int connFD) {
     char readBuffer[100];
     ssize_t readBytes, writeBytes;
@@ -497,7 +504,7 @@ bool read_feedback_and_update_state(int connFD) {
             // Found the feedback, display it to the client
             char feedbackMessage[600];
             snprintf(feedbackMessage, sizeof(feedbackMessage),
-                     "Feedback ID: %d\nAccount: %d\nMessage: %s\n",
+                     "Feedback ID: %d\nAccount: %d\nMessage: %s\ntype ok ",
                      feedback.id, feedback.account, feedback.message);
 
             // Send the feedback details to the client
@@ -559,6 +566,10 @@ bool read_feedback_and_update_state(int connFD) {
 
     return found;
 }
+
+
+
+
 
 
 void unlock_manager_critical_section(struct sembuf *semOp) {
