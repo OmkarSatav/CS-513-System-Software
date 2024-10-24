@@ -719,7 +719,7 @@ bool get_transaction_details(int connFD, int accountNumber) {
             perror("Error writing GET_ACCOUNT_NUMBER message to client!");
             return false;
         }
-
+        
         bzero(readBuffer, sizeof(readBuffer));
         // usleep()
         readBytes = read(connFD, readBuffer, sizeof(readBuffer));
@@ -756,7 +756,7 @@ bool get_transaction_details(int connFD, int accountNumber) {
                      "Balance -\n"
                      "\tBefore: %ld\n"
                      "\tAfter: %ld\n"
-                     "\tDifference: %ld\n\n",
+                     "\tDifference: %ld\n",
                      transaction.transactionID,
                      transaction.accountNumber,
                      ctime(&transaction.transactionTime), // Convert time_t to string
@@ -766,6 +766,7 @@ bool get_transaction_details(int connFD, int accountNumber) {
                      transaction.oldBalance,
                      transaction.newBalance,
                      transaction.newBalance - transaction.oldBalance); // Calculate difference
+           
         }
     }
 
@@ -777,11 +778,13 @@ bool get_transaction_details(int connFD, int accountNumber) {
         return false;
     } else {
         writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-        write(connFD,"type ok ",strlen("type ok "));
+        printf("%s",writeBuffer);
+        write(connFD,"type ok \n",strlen("type ok \n"));
         if (writeBytes == -1) {
             perror("Error writing transaction details to client!");
             return false;
         }
+        
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     }
 

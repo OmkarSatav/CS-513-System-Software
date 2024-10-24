@@ -364,7 +364,7 @@ void send_loan_details_to_manager(int connFD) {
     ssize_t readBytes;
     char buffer[500]; // Buffer for sending loan details
     int count = 0; // To count the number of loans
-
+    
     // // Prepare header for the loan details
     // const char *header = "Loans Assigned to Manager:\n";
     
@@ -381,6 +381,8 @@ void send_loan_details_to_manager(int connFD) {
             snprintf(buffer, sizeof(buffer), "Loan ID: %d, Customer ID: %d, Amount: %ld\n",
                      loan.loanID, loan.custID, loan.amount);
             write(connFD, buffer, strlen(buffer));
+            bzero(buffer,sizeof(buffer));
+            usleep(100000);
             count++;
         }
     }
@@ -394,9 +396,9 @@ void send_loan_details_to_manager(int connFD) {
     // Close the loan file descriptor
     close(loanFileDescriptor);
 
-    const char *endMessage = "End of loan details.\n"; // Change this message as needed
+    const char *endMessage = "type ok "; // Change this message as needed
     write(connFD, endMessage, strlen(endMessage));
-
+    read(connFD, buffer, sizeof(buffer));
 }
 
 
