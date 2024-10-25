@@ -124,9 +124,11 @@ bool customer_operation_handler(int connFD)
                     break;
                 case 10: // Logout
                     // logout_handler(connFD,loggedInCustomer.id);
-                    write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 56);
+                    // write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 61);
+                    logout_handler(connFD,loggedInCustomer.id);
                     return true; // Indicate that we want to return to the initial prompt
                 case 11: // Exit
+                    logout_handler(connFD,loggedInCustomer.id);
                     writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
                     if (writeBytes == -1) {
                         perror("Error sending exit message to client");
@@ -141,6 +143,7 @@ bool customer_operation_handler(int connFD)
     else
     {
         // CUSTOMER LOGIN FAILED
+        printf("custer failed to login ");
         return false;
     }
     return true;

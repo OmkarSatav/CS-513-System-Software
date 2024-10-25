@@ -278,7 +278,7 @@
 // LOGIN WELCOME
 #define CUSTOMER_LOGIN_WELCOME "Welcome dear customer! Enter your credentials to gain access to your account!"
 #define CUSTOMER_LOGIN_SUCCESS "Welcome beloved customer!"
-
+#define CUSTOMER_LOGIN_ID_DOESNT_EXIST "The customer login ID doesn't exist.\n"
 #define CUSTOMER_LOGOUT "Logging you out now, dear customer! Goodbye!$"
 
 // CUSTOMER

@@ -50,6 +50,7 @@ void connection_handler(int sockFD)
     {
         bzero(readBuffer, sizeof(readBuffer)); // Empty the read buffer
         bzero(tempBuffer, sizeof(tempBuffer));
+        
         readBytes = read(sockFD, readBuffer, sizeof(readBuffer));
         if (readBytes == -1)
             perror("Error while reading from client socket!");

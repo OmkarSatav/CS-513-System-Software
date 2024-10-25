@@ -110,7 +110,7 @@ void connection_handler(int connectionFileDescriptor) {
                     break;
                 case 2:
                     if (!customer_operation_handler(connectionFileDescriptor)) {
-                        return; 
+                        continue; 
                     }
                     break;
                 case 3:
