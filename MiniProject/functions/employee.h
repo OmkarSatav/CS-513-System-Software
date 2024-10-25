@@ -75,15 +75,35 @@ bool employee_operation_handler(int connFD) {
                     change_employee_password(connFD);
                     break;
                 case 7:
-                    write(connFD, "You have been successfully logged out. Thank you!\n", 48);
-                    return true; // Indicate that we want to return to the initial prompt
+                    employee_logout_handler(loggedInEmployee.id, connFD);
+                    return false;
                 case 8:
-                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    employee_logout_handler(loggedInEmployee.id, connFD);
+                    
+                    const char *exitMessage = "Exiting the application. Goodbye!🌟 type ok \n";
+                    ssize_t writeBytes = write(connFD, exitMessage, strlen(exitMessage));
                     if (writeBytes == -1) {
                         perror("Error sending exit message to client");
                     }
-                    close(connFD);  // Close the client connection
-                    return false;   // Signal that the connection should end
+
+                    // Dummy read for acknowledgment from the client
+                    char readBuffer[100];
+                    bzero(readBuffer, sizeof(readBuffer)); // Clear the buffer
+
+                    // Reading the acknowledgment from the client
+                    ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+                    if (readBytes == -1) {
+                        perror("Error reading acknowledgment from client");
+                    } else if (readBytes > 0) {
+                        readBuffer[readBytes] = '\0'; // Null-terminate the received string
+                        printf("Received acknowledgment from client: %s\n", readBuffer);
+                    } else {
+                        printf("No acknowledgment received from client.\n");
+                    }
+
+                    // Close the client connection
+                    close(connFD);
+                    return false; //
                 default:
                     writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
                     if (writeBytes == -1) {
@@ -144,8 +164,6 @@ void send_loans_assigned_to_employee(int connFD) {
     // Close the loan file descriptor
     close(loanFileDescriptor);
 }
-
-
 
 
 
@@ -322,14 +340,12 @@ void check_loan_status(int connFD) {
 
 
 
-
-
-
-
 void unlock_employee_critical_section(struct sembuf *semOp) {
     semOp->sem_op = 1; // Unlock operation
     semop(semIdentifier, semOp, 1);
 }
+
+
 
 bool change_employee_password(int connFD) {
     ssize_t readBytes, writeBytes;

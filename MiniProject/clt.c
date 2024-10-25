@@ -109,7 +109,7 @@ void connection_handler(int sockFD)
             }
             else
             {
-                printf("%s\n", readBuffer);               // Show server message
+                printf("%s\n", readBuffer);            // Show server message
                 fgets(writeBuffer, sizeof(writeBuffer), stdin);
                 writeBuffer[strcspn(writeBuffer, "\n")] = 0;
 

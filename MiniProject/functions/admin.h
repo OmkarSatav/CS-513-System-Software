@@ -226,12 +226,30 @@ bool admin_operation_handler(int connFD) {
                     writeBytes = write(connFD, "You have successfully logged out.\n", strlen("You have successfully logged out.\n"));
                     return true; // Return to the main menu, keeping the connection open
                 case 7: // Exit
-                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    const char *exitMessage = "Exiting the application. Goodbye!🌟 type ok \n";
+                    ssize_t writeBytes = write(connFD, exitMessage, strlen(exitMessage));
                     if (writeBytes == -1) {
                         perror("Error sending exit message to client");
                     }
-                    close(connFD);  // Close the client connection
-                    return false;   // Signal that the connection should end
+
+                    // Dummy read for acknowledgment from the client
+                    char readBuffer[100];
+                    bzero(readBuffer, sizeof(readBuffer)); // Clear the buffer
+
+                    // Reading the acknowledgment from the client
+                    ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+                    if (readBytes == -1) {
+                        perror("Error reading acknowledgment from client");
+                    } else if (readBytes > 0) {
+                        readBuffer[readBytes] = '\0'; // Null-terminate the received string
+                        printf("Received acknowledgment from client: %s\n", readBuffer);
+                    } else {
+                        printf("No acknowledgment received from client.\n");
+                    }
+
+                    // Close the client connection
+                    close(connFD);
+                    return false; 
                 default:
                     writeBytes = write(connFD, "Invalid choice. Please try again.\n", 36);
                     if (writeBytes == -1) {
@@ -294,10 +312,6 @@ void change_admin_password(int connFD) {
     const char *successMessage = "Password updated successfully!\n";
     write(connFD, successMessage, strlen(successMessage));
 }
-
-
-
-
 
 
 
@@ -541,7 +555,6 @@ bool modify_customer_info(int connFD)
 
 
 
-
 int add_employee(int connFD) {
     ssize_t readBytes, writeBytes;
     char readBuffer[1000], writeBuffer[1000];
@@ -726,7 +739,6 @@ int add_employee(int connFD) {
 
 
 
-// Function to modify the role of an employee
 bool modify_employee_role(int connFD) {
     ssize_t readBytes, writeBytes;
     char readBuffer[1000], writeBuffer[1000];
@@ -788,6 +800,7 @@ bool modify_employee_role(int connFD) {
 }
 
 
+
 bool find_employee_by_id(int employeeId, struct Employee *employee) {
     FILE *file = fopen(EMPLOYEE_FILE, "r");
     if (file == NULL) {
@@ -808,8 +821,6 @@ bool find_employee_by_id(int employeeId, struct Employee *employee) {
 
 
 
-
-// Function to update the employee role in the file
 bool update_employee_role(int employeeId, int newRole) {
     FILE *file = fopen(EMPLOYEE_FILE, "r+");
     if (file == NULL) {

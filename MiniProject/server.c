@@ -112,7 +112,7 @@ void connection_handler(int connectionFileDescriptor) {
                     break;
                 case 2:
                     if (!customer_operation_handler(connectionFileDescriptor)) {
-                        continue; 
+                        return; 
                     }
                     break;
                 case 3:
@@ -125,6 +125,9 @@ void connection_handler(int connectionFileDescriptor) {
                         return;
                     }
                     break;
+                case 5:
+                    printf("Exiting the application. Goodbye! 👋\n");
+                    continue;  
                 default:
                     printf("Invalid choice or exit.\n");
                     break;

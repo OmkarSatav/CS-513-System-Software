@@ -82,15 +82,35 @@ bool manager_operation_handler(int connFD) {
                     change_manager_password(connFD); // Implement this function
                     break;
                 case 8: // Logout
-                    write(connFD, "You have logged out.\n", 22);
-                    return true; // Indicate that we want to return to the initial prompt
+                    employee_logout_handler(connFD, loggedInManager.id);
+                    return false;
                 case 9: // Exit
-                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+                    employee_logout_handler(connFD, loggedInManager.id);
+                       
+                    const char *exitMessage = "Exiting the application. Goodbye!🌟 type ok \n";
+                    ssize_t writeBytes = write(connFD, exitMessage, strlen(exitMessage));
                     if (writeBytes == -1) {
                         perror("Error sending exit message to client");
                     }
-                    close(connFD);  // Close the client connection
-                    return false;   // Signal that the connection should end
+
+                    // Dummy read for acknowledgment from the client
+                    char readBuffer[100];
+                    bzero(readBuffer, sizeof(readBuffer)); // Clear the buffer
+
+                    // Reading the acknowledgment from the client
+                    ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+                    if (readBytes == -1) {
+                        perror("Error reading acknowledgment from client");
+                    } else if (readBytes > 0) {
+                        readBuffer[readBytes] = '\0'; // Null-terminate the received string
+                        printf("Received acknowledgment from client: %s\n", readBuffer);
+                    } else {
+                        printf("No acknowledgment received from client.\n");
+                    }
+
+                    // Close the client connection
+                    close(connFD);
+                    return false; 
                 default:
                     write(connFD, "Invalid choice! Please try again.\n", 36);
             }

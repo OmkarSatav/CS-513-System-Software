@@ -5,14 +5,18 @@
 // ========== COMMON TEXT =============================
 
 // Welcome Message
-#define INITIAL_PROMPT "🏦 Welcome to Pune Jatan Societal Bank! 🌟\n" \
+#define INITIAL_PROMPT  \
+    "\n\n====================================================\n" \
+                    "🏦 Welcome to Pune Jatan Societal Bank! 🌟\n" \
+    "============================================================\n" \
                        "Who are you?\n" \
                        "1. Admin 🧑‍💼\n" \
                        "2. Customer 👥\n" \
                        "3. Manager 👩‍💼\n" \
                        "4. Employee 👨‍💻\n" \
-                       "Press any other number to exit 🚪\n" \
+                       "5. Exit 🛑\n" \
                        "Enter the number corresponding to your choice: "
+    
 
 // LOGIN
 #define LOGIN_ID "🔑 Enter your login ID: "
@@ -41,12 +45,12 @@
 // ========== ADMIN SPECIFIC TEXT======================
 
 // LOGIN WELCOME
-#define ADMIN_LOGIN_WELCOME "🌟 Welcome dear admin! With great power comes great responsibility!\nEnter your credentials to unlock this power!"
+#define ADMIN_LOGIN_WELCOME "🌟 Welcome dear admin!\nEnter your credentials "
 #define ADMIN_LOGIN_SUCCESS "✅ Welcome Admin!"
 
 // ADMIN MENU
 #define ADMIN_MENU \
-    "========================\n" \
+    "\n\n========================\n" \
     "       ADMIN MENU       \n" \
     "========================\n" \
     "1. Add New Bank Employee ➕\n" \
@@ -99,7 +103,7 @@
 
 // CUSTOMER
 #define CUSTOMER_MENU \
-"========================\n" \
+"\n\n========================\n" \
 "       CUSTOMER MENU      \n" \
 "========================\n" \
 "1. Get Customer Details 📄\n" \
@@ -139,7 +143,7 @@
 
 #define MANAGER_LOGIN_SUCCESS "✅ Login successful! Welcome, Manager!\n"
 #define MANAGER_MENU \
-"========================\n" \
+"\n\n========================\n" \
 "       MANAGER MENU      \n" \
 "========================\n" \
 "1. Activate Customer Accounts ✅\n" \
@@ -160,7 +164,7 @@
 
 #define EMPLOYEE_LOGIN_SUCCESS "✅ Login successful! Welcome, Employee!\n"
 #define EMPLOYEE_MENU  \
-"========================\n" \
+"\n\n========================\n" \
 "       EMPLOYEE MENU      \n" \
 "========================\n" \
 "1. Add New Customer ➕\n" \
