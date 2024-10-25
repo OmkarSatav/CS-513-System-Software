@@ -93,6 +93,7 @@ void connection_handler(int connectionFileDescriptor) {
         }
 
         bzero(readBuffer, sizeof(readBuffer));
+        usleep(100000);
         readBytes = read(connectionFileDescriptor, readBuffer, sizeof(readBuffer));
         if (readBytes == -1) {
             perror("Error while reading from client");
@@ -101,6 +102,7 @@ void connection_handler(int connectionFileDescriptor) {
             printf("No data was sent by the client");
             break; // Exit if no data is sent
         } else {
+            readBuffer[readBytes] = '\0'; 
             userChoice = atoi(readBuffer);
             switch (userChoice) {
                 case 1:

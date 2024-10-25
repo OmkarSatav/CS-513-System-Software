@@ -34,120 +34,240 @@ bool apply_loan(int connFD);
 
 // Function Definition =================================
 
-bool customer_operation_handler(int connFD)
-{
-    if (login_handler(false, connFD, &loggedInCustomer))
-    {
-        ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
-        char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
 
-        // Get a semaphore for the user
-        key_t semKey = ftok(CUSTOMER_FILE, loggedInCustomer.account); // Generate a key based on the account number hence, different customers will have different semaphores
+bool customer_operation_handler(int connFD) {
+    ssize_t writeBytes, readBytes;            // Number of bytes read from/written to the client
+    char readBuffer[1000], writeBuffer[1000]; // Buffers for reading & writing to the client                // Assume you have a Customer struct defined
 
-        union semun
-        {
-            int val; // Value of the semaphore
-        } semSet;
-
-        int semctlStatus;
-        semIdentifier = semget(semKey, 1, 0); // Get the semaphore if it exists
-        if (semIdentifier == -1)
-        {
-            semIdentifier = semget(semKey, 1, IPC_CREAT | 0700); // Create a new semaphore
-            if (semIdentifier == -1)
-            {
-                perror("Error while creating semaphore!");
-                _exit(1);
-            }
-
-            semSet.val = 1; // Set a binary semaphore
-            semctlStatus = semctl(semIdentifier, 0, SETVAL, semSet);
-            if (semctlStatus == -1)
-            {
-                perror("Error while initializing a binary sempahore!");
-                _exit(1);
-            }
+    // Loop until a successful login or exit
+    while (1) {
+        // Prompt for login ID
+        writeBytes = write(connFD, "🔑 Enter your login ID: ", strlen("🔑 Enter your login ID: "));
+        if (writeBytes == -1) {
+            perror("Error while writing prompt for login ID to client");
+            return false; // Exit on write error
         }
 
+        bzero(readBuffer, sizeof(readBuffer));
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error while reading login ID from client");
+            return false; // Exit on read error
+        }
+        readBuffer[readBytes] = '\0'; // Null-terminate the string
+
+        // Validate the login ID (replace this with your actual validation logic)
+        if (login_handler(false, connFD, &loggedInCustomer)) {
+            // Proceed to login success
+            writeBytes = write(connFD, CUSTOMER_LOGIN_SUCCESS, strlen(CUSTOMER_LOGIN_SUCCESS));
+            if (writeBytes == -1) {
+                perror("Error while writing login success message to client");
+                return false; // Exit on write error
+            }
+            break; // Exit the loop for successful login
+        } else {
+            // Inform the user of the failure
+            writeBytes = write(connFD, CUSTOMER_LOGIN_ID_DOESNT_EXIST, strlen(CUSTOMER_LOGIN_ID_DOESNT_EXIST));
+            if (writeBytes == -1) {
+                perror("Error while sending login failure message to client");
+            }
+        }
+    }
+
+    // Now, you can proceed with the customer menu
+    while (1) {
+        // Display customer menu
         bzero(writeBuffer, sizeof(writeBuffer));
-        strcpy(writeBuffer, CUSTOMER_LOGIN_SUCCESS);
-        while (1)
-        {
-            strcat(writeBuffer, "\n");
-            strcat(writeBuffer, CUSTOMER_MENU);
-            writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
-            if (writeBytes == -1)
-            {
-                perror("Error while writing CUSTOMER_MENU to client!");
-                return false;
-            }
-            bzero(writeBuffer, sizeof(writeBuffer));
+        strcat(writeBuffer, "\n");
+        strcat(writeBuffer, CUSTOMER_MENU);
+        writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+        if (writeBytes == -1) {
+            perror("Error while writing CUSTOMER_MENU to client!");
+            return false;
+        }
+        bzero(readBuffer, sizeof(readBuffer));
 
-            bzero(readBuffer, sizeof(readBuffer));
-            readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-            if (readBytes == -1)
-            {
-                perror("Error while reading client's choice for CUSTOMER_MENU");
-                return false;
-            }
-            
-            // printf("READ BUFFER : %s\n", readBuffer);
-            int choice = atoi(readBuffer);
-            // printf("CHOICE : %d\n", choice);
-            switch (choice) {
-                case 1:
-                    get_customer_details(connFD, loggedInCustomer.id);
-                    break;
-                case 2:
-                    deposit(connFD);
-                    break;
-                case 3:
-                    withdraw(connFD);
-                    break;
-                case 4:
-                    get_balance(connFD);
-                    break;
-                case 5:
-                    get_transaction_details(connFD, loggedInCustomer.account);
-                    break;
-                case 6:
-                    change_password(connFD);
-                    break;
-                case 7:
-                    transfer_funds(connFD);
-                    break;
-                case 8:
-                    apply_loan(connFD);
-                    break;
-                case 9:
-                    write_feedback(connFD);
-                    break;
-                case 10: // Logout
-                    // logout_handler(connFD,loggedInCustomer.id);
-                    // write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 61);
-                    logout_handler(connFD,loggedInCustomer.id);
-                    return true; // Indicate that we want to return to the initial prompt
-                case 11: // Exit
-                    logout_handler(connFD,loggedInCustomer.id);
-                    writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
-                    if (writeBytes == -1) {
-                        perror("Error sending exit message to client");
-                    }
-                    close(connFD);  // Close the client connection
-                    return false;   // Signal that the connection should end
-                default:
-                    write(connFD, "Invalid choice! Please try again.\n", 36);
-            }
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+        if (readBytes == -1) {
+            perror("Error while reading client's choice for CUSTOMER_MENU");
+            return false;
+        }
+        readBuffer[readBytes] = '\0'; // Null-terminate the string
+
+        int choice = atoi(readBuffer);
+        switch (choice) {
+            case 1:
+                get_customer_details(connFD, loggedInCustomer.id);
+                break;
+            case 2:
+                deposit(connFD);
+                break;
+            case 3:
+                withdraw(connFD);
+                break;
+            case 4:
+                get_balance(connFD);
+                break;
+            case 5:
+                get_transaction_details(connFD, loggedInCustomer.account);
+                break;
+            case 6:
+                change_password(connFD);
+                break;
+            case 7:
+                transfer_funds(connFD);
+                break;
+            case 8:
+                apply_loan(connFD);
+                break;
+            case 9:
+                write_feedback(connFD);
+                break;
+            case 10: // Logout
+                logout_handler(connFD, loggedInCustomer.id);
+                return true; // Indicate that we want to return to the initial prompt
+            case 11: // Exit
+                logout_handler(connFD, loggedInCustomer.id);
+                writeBytes = write(connFD, "Exiting the application. Goodbye!🌟\n", 35);
+                if (writeBytes == -1) {
+                    perror("Error sending exit message to client");
+                }
+                close(connFD);  // Close the client connection
+                return false;   // Signal that the connection should end
+            default:
+                write(connFD, "Invalid choice! Please try again.\n", 36);
         }
     }
-    else
-    {
-        // CUSTOMER LOGIN FAILED
-        printf("custer failed to login ");
-        return false;
-    }
-    return true;
+
+    return true; // This line might be redundant depending on your logic
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// bool customer_operation_handler(int connFD)
+// {
+//     if (login_handler(false, connFD, &loggedInCustomer))
+//     {
+//         ssize_t writeBytes, readBytes;            // Number of bytes read from / written to the client
+//         char readBuffer[1000], writeBuffer[1000]; // A buffer used for reading & writing to the client
+
+//         // Get a semaphore for the user
+//         key_t semKey = ftok(CUSTOMER_FILE, loggedInCustomer.account); // Generate a key based on the account number hence, different customers will have different semaphores
+
+//         union semun
+//         {
+//             int val; // Value of the semaphore
+//         } semSet;
+
+//         int semctlStatus;
+//         semIdentifier = semget(semKey, 1, 0); // Get the semaphore if it exists
+//         if (semIdentifier == -1)
+//         {
+//             semIdentifier = semget(semKey, 1, IPC_CREAT | 0700); // Create a new semaphore
+//             if (semIdentifier == -1)
+//             {
+//                 perror("Error while creating semaphore!");
+//                 _exit(1);
+//             }
+
+//             semSet.val = 1; // Set a binary semaphore
+//             semctlStatus = semctl(semIdentifier, 0, SETVAL, semSet);
+//             if (semctlStatus == -1)
+//             {
+//                 perror("Error while initializing a binary sempahore!");
+//                 _exit(1);
+//             }
+//         }
+
+//         bzero(writeBuffer, sizeof(writeBuffer));
+//         strcpy(writeBuffer, CUSTOMER_LOGIN_SUCCESS);
+//         while (1)
+//         {
+//             strcat(writeBuffer, "\n");
+//             strcat(writeBuffer, CUSTOMER_MENU);
+//             writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+//             if (writeBytes == -1)
+//             {
+//                 perror("Error while writing CUSTOMER_MENU to client!");
+//                 return false;
+//             }
+//             bzero(writeBuffer, sizeof(writeBuffer));
+
+//             bzero(readBuffer, sizeof(readBuffer));
+//             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
+//             if (readBytes == -1)
+//             {
+//                 perror("Error while reading client's choice for CUSTOMER_MENU");
+//                 return false;
+//             }
+            
+//             // printf("READ BUFFER : %s\n", readBuffer);
+//             int choice = atoi(readBuffer);
+//             // printf("CHOICE : %d\n", choice);
+//             switch (choice) {
+//                 case 1:
+//                     get_customer_details(connFD, loggedInCustomer.id);
+//                     break;
+//                 case 2:
+//                     deposit(connFD);
+//                     break;
+//                 case 3:
+//                     withdraw(connFD);
+//                     break;
+//                 case 4:
+//                     get_balance(connFD);
+//                     break;
+//                 case 5:
+//                     get_transaction_details(connFD, loggedInCustomer.account);
+//                     break;
+//                 case 6:
+//                     change_password(connFD);
+//                     break;
+//                 case 7:
+//                     transfer_funds(connFD);
+//                     break;
+//                 case 8:
+//                     apply_loan(connFD);
+//                     break;
+//                 case 9:
+//                     write_feedback(connFD);
+//                     break;
+//                 case 10: // Logout
+//                     // logout_handler(connFD,loggedInCustomer.id);
+//                     // write(connFD, "You have logged out. Thank you for using our services! 🌟\n", 61);
+//                     logout_handler(connFD,loggedInCustomer.id);
+//                     return true; // Indicate that we want to return to the initial prompt
+//                 case 11: // Exit
+//                     logout_handler(connFD,loggedInCustomer.id);
+//                     writeBytes = write(connFD, "Exiting the application. Goodbye!$\n", 35);
+//                     if (writeBytes == -1) {
+//                         perror("Error sending exit message to client");
+//                     }
+//                     close(connFD);  // Close the client connection
+//                     return false;   // Signal that the connection should end
+//                 default:
+//                     write(connFD, "Invalid choice! Please try again.\n", 36);
+//             }
+//         }
+//     }
+//     else
+//     {
+//         // CUSTOMER LOGIN FAILED
+//         printf("custer failed to login ");
+//         return false;
+//     }
+//     return true;
+// }
 
 
 
@@ -1096,71 +1216,6 @@ int write_transaction_to_file(int accountNumber, long beforeBalance, long afterB
 }
 
 
-
-
-
-
-
-///////////// this is latest version write.
-
-
-// int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
-//     char transactionBuffer[1024];
-//     char operationType[10];
-//     time_t now = time(NULL);
-//     struct tm *local = localtime(&now);
-
-//     // Determine the operation type (0 = Withdraw, 1 = Deposit)
-//     if (operation == 0) {
-//         strcpy(operationType, "Deposit");
-//     } else if (operation == 1) {
-//         strcpy(operationType, "Withdraw");
-//     }else if(operation == 2){
-//         strcpy(operationType, "Transfer");
-//     }
-
-//     long difference = afterBalance - beforeBalance;
-
-//     // Get the unique transaction ID
-//     int transactionID = get_new_transaction_id();
-
-//     // Format the transaction log with account number and other details
-//     snprintf(transactionBuffer, sizeof(transactionBuffer),
-//              "Transaction ID: %d\n"
-//              "Account ID: %d\n"
-//              "Details of transaction:\n"
-//              "\tDate: %02d:%02d %02d/%02d/%d\n"
-//              "\tOperation: %s\n"
-//              "\tSender Account ID: %d\n"
-//              "\tReceiver Account ID: %d\n"
-//              "\tBalance -\n"
-//              "\t\tBefore: %ld\n"
-//              "\t\tAfter: %ld\n"
-//              "\t\tDifference: %ld\n\n",
-//              transactionID, 
-//              accountNumber, 
-//              local->tm_hour, local->tm_min, local->tm_mday, local->tm_mon + 1, local->tm_year + 1900,
-//              operationType, 
-//              accountNumber, // Sender Account (same as depositor's account)
-//              receiverAccountNumber, // Receiver Account
-//              beforeBalance, afterBalance, difference);
-
-//     // Write the transaction to the file
-//     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
-//     if (transactionFileDescriptor == -1) {
-//         perror("Error opening transaction file");
-//         return -1;
-//     }
-
-//     if (write(transactionFileDescriptor, transactionBuffer, strlen(transactionBuffer)) == -1) {
-//         perror("Error writing transaction to file");
-//         close(transactionFileDescriptor);
-//         return -1;
-//     }
-
-//     close(transactionFileDescriptor);
-//     return transactionID;
-// }
 
 
 
