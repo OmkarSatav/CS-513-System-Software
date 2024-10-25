@@ -46,10 +46,11 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
 
     // Get login message for respective user type
     if (isManager) {
-        strcpy(writeBuffer, "Welcome, Manager! Please enter your login ID:"); // Manager welcome message
+        strcpy(writeBuffer, "👔 Welcome, Manager! Please enter your login ID:"); // Manager welcome message
     } else {
-        strcpy(writeBuffer, "Welcome, Employee! Please enter your login ID:"); // Employee welcome message
+        strcpy(writeBuffer, "👨‍🏫 Welcome, Employee! Please enter your login ID:"); // Employee welcome message
     }
+
 
     // Request for LOGIN ID message
     strcat(writeBuffer, "\nLogin ID: ");
@@ -114,7 +115,7 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
 
     if (userFound) {
         bzero(writeBuffer, sizeof(writeBuffer));
-        writeBytes = write(connFD, "Please enter your password: ", 28);
+        writeBytes = write(connFD, "Please enter your password 🔑: ", 30);
         if (writeBytes == -1) {
             perror("Error writing PASSWORD message to client!");
             return false;

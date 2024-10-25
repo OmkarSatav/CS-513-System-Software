@@ -12,20 +12,21 @@ Date: 19th Sept, 2024.
 #include <sys/msg.h>   // For using message queue functions like msgget(), msgrcv().
 #include <stdio.h>     // For using Standard Input Output Functions like printf().
 
-struct msgbuf {
-    long int mtype;
-    char mtext[150];
-};
 
 int main() {
     key_t key = ftok("mq", 1);  
-    int msgqueid = msgget(key, 0);                              // Get the message queue identifier
+    int msgqueid = msgget(key, 0);  
+    struct msgbuf {
+        long mtype;                                 // Message type
+        char mtext[80];
+    }msg1;
+                            // Get the message queue identifier
     struct msgbuf message;
 
-    msgrcv(msgq_id, &msg1, sizeof(msg1.mtext), 10, IPC_NOWAIT);
+    msgrcv(msgqueid, &msg1, sizeof(msg1.mtext), 2, IPC_NOWAIT);
 
-    printf("Message Type: %ld\n", message.mtype);          
-    printf("Message: %s\n", message.mtext);  
+    printf("Message Type: %ld\n", msg1.mtype);          
+    printf("Message: %s\n", msg1.mtext);  
 
     return 0;
 }
@@ -35,8 +36,8 @@ int main() {
 /*
 
 
-Message Type: 10
-Message: Hello from 26.c!
+Message Type: 2
+Message: Greetings, this is the second message with mtype 2
 
 
 */

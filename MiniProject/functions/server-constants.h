@@ -13,7 +13,7 @@
                        "4. Employee 👨‍💻\n" \
                        "Press any other number to exit 🚪\n" \
                        "Enter the number corresponding to your choice: "
-                       
+
 // LOGIN
 #define LOGIN_ID "🔑 Enter your login ID: "
 #define PASSWORD "🔒 Enter your password \n# "
@@ -144,11 +144,13 @@
 "========================\n" \
 "1. Activate Customer Accounts ✅\n" \
 "2. Deactivate Customer Accounts ❌\n" \
-"3. Assign Loan Application Processes to Employees 📋\n" \
-"4. Review Customer Feedback 📝\n" \
-"5. Change Password 🔐\n" \
-"6. Logout 🚪\n" \
-"7. Exit 🛑\n" \
+"3. Review Loan Applications 📋\n" \
+"4. Assign Loan to Employees 🏦\n" \
+"5. View Customer Feedback 📬\n" \
+"6. Update Feedback Status ✅✏️\n" \
+"7. Change Manager Password 🔐\n" \
+"8. Logout 🚪\n" \
+"9. Exit 🛑\n" \
 "========================\n" \
 "Please enter your choice: "
 

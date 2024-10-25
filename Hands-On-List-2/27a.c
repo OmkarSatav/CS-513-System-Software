@@ -21,9 +21,9 @@ int main() {
         char msgtext[80];   
     } msg1;
 
-    msgrcv(msgqueid, &msg1, sizeof(msg1.msgtext), 10, 0);     // Receive a message from the message queue with flag 0
+    msgrcv(msgqueid, &msg1, sizeof(msg1.msgtext), 1, 0);     // Receive a message from the message queue with flag 0
 
-    printf("\nMessage type: %ld", msg1.mtype);
+    printf("\nMessage type: %ld", msg1.msgtype);
     printf("\nMessage: %s", msg1.msgtext);
     
     return 0;
@@ -34,8 +34,8 @@ int main() {
 /*
 
 
-Message Type: 10
-Message: Hello from 26.c!
+Message type: 1
+Message: Hello, this is the first message with mtype 1
 
 
 */

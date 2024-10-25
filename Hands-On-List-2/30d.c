@@ -1,5 +1,5 @@
 /*======================================================================================================
-Name : 30b.c
+Name : 30d.c
 Author : Omkar Satav
 Description : Write a program to create a shared memory.
               d. remove the shared memory.
