@@ -9,7 +9,7 @@ struct Employee {
     char login[30]; 
     char password[30]; 
     int employeeType; 
-    bool isLoggedIn;
+    // bool isLoggedIn;
 };
 
 #endif 

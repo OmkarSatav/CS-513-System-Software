@@ -81,29 +81,26 @@ bool manager_operation_handler(int connFD) {
                 case 7:
                     change_manager_password(connFD); // Implement this function
                     break;
-                case 8: // Logout
-                    employee_logout_handler(connFD, loggedInManager.id);
+                case 8:
                     return false;
-                case 9: // Exit
-                    employee_logout_handler(connFD, loggedInManager.id);
-                       
-                    const char *exitMessage = "Exiting the application. Goodbye!🌟 type ok \n";
-                    ssize_t writeBytes = write(connFD, exitMessage, strlen(exitMessage));
-                    if (writeBytes == -1) {
+                case 9:
+                    const char *exit2 = "Exiting the application!🌟 type ok \n";
+                    ssize_t writeBytes2 = write(connFD, exit2, strlen(exit2));
+                    if (writeBytes2 == -1) {
                         perror("Error sending exit message to client");
                     }
 
                     // Dummy read for acknowledgment from the client
-                    char readBuffer[100];
-                    bzero(readBuffer, sizeof(readBuffer)); // Clear the buffer
+                    char readBuffer3[100];
+                    bzero(readBuffer3, sizeof(readBuffer3)); // Clear the buffer
 
                     // Reading the acknowledgment from the client
-                    ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
-                    if (readBytes == -1) {
+                    ssize_t readBytes3 = read(connFD, readBuffer3, sizeof(readBuffer3) - 1);
+                    if (readBytes3 == -1) {
                         perror("Error reading acknowledgment from client");
-                    } else if (readBytes > 0) {
-                        readBuffer[readBytes] = '\0'; // Null-terminate the received string
-                        printf("Received acknowledgment from client: %s\n", readBuffer);
+                    } else if (readBytes3 > 0) {
+                        readBuffer[readBytes3] = '\0'; // Null-terminate the received string
+                        printf("Received acknowledgment from client: %s\n", readBuffer3);
                     } else {
                         printf("No acknowledgment received from client.\n");
                     }
@@ -112,7 +109,7 @@ bool manager_operation_handler(int connFD) {
                     close(connFD);
                     return false; 
                 default:
-                    write(connFD, "Invalid choice! Please try again.\n", 36);
+                    // write(connFD, "Invalid choice! Please try again.\n", 35);
             }
         }
     } else {

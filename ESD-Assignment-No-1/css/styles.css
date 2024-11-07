@@ -1,0 +1,121 @@
+body {
+    font-family: 'Montserrat';
+}
+
+#title {
+    position: relative;
+    width: 100%;
+    height: 100vh; 
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: url('../yummyImages/bg.jpeg');
+}
+
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.navbar-brand{
+    color:#ff4c68;
+}
+
+
+.order-button {
+    display: inline-flex;
+    width: fit-content;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #ff0051; /* Button color */
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  /* Arrow icon styling */
+  .arrow-icon {
+    width: 16px;
+    height: 16px;
+    fill: #fff; /* Match arrow color to button text */
+  }
+  
+  /* Button hover effect */
+  .order-button:hover {
+    background-color: #aa0237; /* Darken button color on hover */
+  }
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(28, 5, 5, 0.901);
+}
+
+.navbar-dark .navbar-nav .nav-link:hover{
+    color: #aa0237;
+}
+.container-fluid {
+    padding-left: 0;    
+    padding-right: 0;
+    padding: 3% 15%;
+}
+
+h1 {
+    size: 3rem;
+    line-height: 3rem;
+    color: #ffffff;
+}
+
+.navbar {
+    padding-bottom: 4.5rem;
+}
+
+.nav-item {
+    padding: 0 18px;
+}
+
+.nav-link {
+    font-size: 1.2rem;
+}
+
+.title-img {
+    width: 20%;
+    transform: rotate(25deg);
+    position: absolute;
+    margin-left: 10%;
+}
+
+@media (max-width: 1028px) {
+    .title {
+        text-align: center;
+    }
+    .title-img {
+        position: static;
+        width: 40%;
+        transform: rotate(10deg);
+    }
+}
+
+h3 {
+    font-weight: bold;
+}
+
+p {
+    color: #8f8f8f;
+}
+
+.row {
+    padding: 5% 2% 5% 2%;
+}
+
+
+

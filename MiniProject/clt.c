@@ -42,6 +42,11 @@ int main()
     return 0;
 }
 
+
+
+
+
+
 void connection_handler(int sockFD)
 {
     char readBuffer[1000], writeBuffer[1000]; // Buffers for reading and writing
@@ -109,7 +114,7 @@ void connection_handler(int sockFD)
             }
             else
             {
-                printf("%s\n", readBuffer);            // Show server message
+                printf("%s\n", readBuffer);               // Show server message
                 fgets(writeBuffer, sizeof(writeBuffer), stdin);
                 writeBuffer[strcspn(writeBuffer, "\n")] = 0;
 
@@ -126,4 +131,91 @@ void connection_handler(int sockFD)
     } while (readBytes > 0);
 
     close(sockFD); // Close the socket at the end
-}
+}   
+
+// void connection_handler(int sockFD)
+// {
+//     char readBuffer[1000], writeBuffer[1000]; // Buffers for reading and writing
+//     ssize_t readBytes, writeBytes;            // Bytes read from/written to the socket
+//     char tempBuffer[1000];
+
+//     do
+//     {
+//         // Clear buffers
+//         bzero(readBuffer, sizeof(readBuffer));
+//         bzero(tempBuffer, sizeof(tempBuffer));
+
+//         // Read from socket
+//         readBytes = read(sockFD, readBuffer, sizeof(readBuffer) - 1); // -1 to leave space for null-terminator
+//         if (readBytes == -1)
+//         {
+//             perror("Error while reading from server socket!");
+//             break;
+//         }
+//         else if (readBytes == 0)
+//         {
+//             printf("Connection closed by server.\n");
+//             break;
+//         }
+
+//         readBuffer[readBytes] = '\0'; // Null-terminate the read buffer
+
+//         if (strstr(readBuffer, "type ok") != NULL)
+//         {
+//             strncpy(tempBuffer, readBuffer, strlen(readBuffer) - 1);
+//             printf("%s\n", tempBuffer);
+//             fgets(writeBuffer, sizeof(writeBuffer), stdin); // Read user input
+//             writeBytes = write(sockFD, writeBuffer, strlen(writeBuffer)); // Write to server
+//             if (writeBytes == -1)
+//             {
+//                 perror("Error while writing to server socket!");
+//                 break;
+//             }
+//         }
+//         else if (strchr(readBuffer, '^') != NULL)
+//         {
+//             strncpy(tempBuffer, readBuffer, strlen(readBuffer) - 1);
+//             printf("%s\n", tempBuffer);
+//             writeBytes = write(sockFD, "^", strlen("^")); // Send dummy data
+//             if (writeBytes == -1)
+//             {
+//                 perror("Error while writing to server socket!");
+//                 break;
+//             }
+//         }
+//         else if (strchr(readBuffer, '$') != NULL)
+//         {
+//             strncpy(tempBuffer, readBuffer, strlen(readBuffer) - 2); // Exclude special characters
+//             printf("%s\n", tempBuffer);
+//             printf("Closing connection to the server now!\n");
+//             break;
+//         }
+//         else
+//         {
+//             bzero(writeBuffer, sizeof(writeBuffer)); // Clear write buffer
+
+//             if (strchr(readBuffer, '#') != NULL)
+//             {
+//                 strcpy(writeBuffer, getpass(readBuffer)); // For password input
+//             }
+//             else
+//             {
+//                 printf("%s\n", readBuffer);               // Show server message
+//                 fgets(writeBuffer, sizeof(writeBuffer), stdin);
+//                 writeBuffer[strcspn(writeBuffer, "\n")] = 0;
+
+//             }
+
+//             writeBytes = write(sockFD, writeBuffer, strlen(writeBuffer)); // Write to server
+//             if (writeBytes == -1)
+//             {
+//                 perror("Error while writing to server socket!");
+//                 printf("Closing connection to the server now!\n");
+//                 break;
+//             }
+//         }
+//     } while (readBytes > 0);
+
+
+//     close(sockFD); // Close the socket at the end
+// }

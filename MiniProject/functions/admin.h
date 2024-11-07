@@ -557,43 +557,51 @@ bool modify_customer_info(int connFD)
 
 int add_employee(int connFD) {
     ssize_t readBytes, writeBytes;
-    char readBuffer[1000], writeBuffer[1000];
+    char readBuffer[500], writeBuffer[500];
     struct Employee newEmployee;
+    int  employeeFileDescriptor = open(EMPLOYEE_FILE, O_RDWR | O_CREAT | O_APPEND, 0777);
 
-    int employeeFileDescriptor = open(EMPLOYEE_FILE, O_RDONLY);
-    if (employeeFileDescriptor == -1 && errno == ENOENT) {
-        // Employee file was never created
-        newEmployee.id = 0;
-    } else if (employeeFileDescriptor == -1) {
-        perror("Error while opening employee file");
+    if (employeeFileDescriptor == -1) {
+        perror("Error opening employee file");
         return -1;
+    }
+
+    // Check file size to see if it's empty
+    off_t fileSize = lseek(employeeFileDescriptor, 0, SEEK_END);
+    if (fileSize == -1) {
+        perror("Error checking file size");
+        close(employeeFileDescriptor);
+        return -1;
+    } else if (fileSize == 0) {
+        // File is empty; assign the first ID
+        newEmployee.id = 0;
     } else {
-        // Seek to the last employee record and read it to determine the next employee ID
-        int offset = lseek(employeeFileDescriptor, -sizeof(struct Employee), SEEK_END);
-        if (offset == -1) {
-            perror("Error seeking to last employee record!");
+        // File is not empty; seek to the last employee record
+        if (lseek(employeeFileDescriptor, -sizeof(struct Employee), SEEK_END) == -1) {
+            perror("Error seeking to last employee record");
+            close(employeeFileDescriptor);
             return -1;
         }
 
-        struct flock lock = {F_RDLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
-        int lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
-        if (lockingStatus == -1) {
-            perror("Error obtaining read lock on employee record!");
+        struct flock lock = {F_RDLCK, SEEK_END, -sizeof(struct Employee), sizeof(struct Employee), getpid()};
+        if (fcntl(employeeFileDescriptor, F_SETLKW, &lock) == -1) {
+            perror("Error obtaining read lock on last employee record");
+            close(employeeFileDescriptor);
             return -1;
         }
 
         readBytes = read(employeeFileDescriptor, &newEmployee, sizeof(struct Employee));
         if (readBytes == -1) {
-            perror("Error while reading employee record from file!");
+            perror("Error reading last employee record");
+            close(employeeFileDescriptor);
             return -1;
         }
 
         lock.l_type = F_UNLCK;
         fcntl(employeeFileDescriptor, F_SETLK, &lock);
-
-        close(employeeFileDescriptor);
-
-        newEmployee.id = newEmployee.id + 1;
+        
+        // Increment ID for the new employee
+        newEmployee.id++;
     }
 
     // Send prompt for employee name
@@ -767,11 +775,11 @@ bool modify_employee_role(int connFD) {
     }
 
     // Show the current role
-    snprintf(writeBuffer, sizeof(writeBuffer), "Current Role: %d (0: Admin, 1: Manager, 2: Bank Employee)\n", employee.employeeType);
+    snprintf(writeBuffer, sizeof(writeBuffer), "Current Role: %d ( Manager, 2: Bank Employee)\n", employee.employeeType);
     write(connFD, writeBuffer, strlen(writeBuffer));
     
     // Get the new role from the admin
-    writeBytes = write(connFD, "Enter the new role (0 for Admin, 1 for Manager, 2 for Bank Employee): ", 66);
+    writeBytes = write(connFD, "Enter the new role (1 for Manager, 2 for Bank Employee): ", 58);
     if (writeBytes == -1) {
         perror("Error writing GET_NEW_ROLE message to client!");
         return false;

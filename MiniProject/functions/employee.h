@@ -23,6 +23,7 @@ void check_loan_status(int connFD);
 bool change_employee_password(int connFD);
 bool add_account(int connFD);
 int add_customer(int connFD, int newAccountNumber);
+void send_loans_assigned_to_employee(int connFD);
 // =====================================================
 // Function Definition =================================
 
@@ -48,12 +49,12 @@ bool employee_operation_handler(int connFD) {
             bzero(writeBuffer, sizeof(writeBuffer));
 
             bzero(readBuffer, sizeof(readBuffer));
+            usleep(100000);
             readBytes = read(connFD, readBuffer, sizeof(readBuffer));
             if (readBytes == -1) {
                 perror("Error while reading client's choice for MANAGER_MENU");
                 return false;
             }
-
             int choice = atoi(readBuffer);
             switch (choice) {
                 case 1:
@@ -75,41 +76,48 @@ bool employee_operation_handler(int connFD) {
                     change_employee_password(connFD);
                     break;
                 case 7:
-                    employee_logout_handler(loggedInEmployee.id, connFD);
-                    return false;
+                    // employee_logout_handler(loggedInEmployee.id, connFD);
+                    // const char *logout = "Logging out the account!🌟\n type ok ";
+                    // ssize_t writeBytes1 = write(connFD, logout, strlen(logout));
+                    // if (writeBytes1 == -1) {
+                    //     perror("Error sending exit message to client");
+                    // }
+
+                    // // Dummy read for acknowledgment from the client
+                    // char readBuffer2[100];
+                    // bzero(readBuffer2, sizeof(readBuffer2)); // Clear the buffer
+
+                    // ssize_t readbytes3 = read(connFD, readBuffer2, sizeof(readBuffer2)); // Dummy read
+                    // // Close the client connection
+                    // close(connFD);
+                    return false; 
                 case 8:
-                    employee_logout_handler(loggedInEmployee.id, connFD);
-                    
-                    const char *exitMessage = "Exiting the application. Goodbye!🌟 type ok \n";
-                    ssize_t writeBytes = write(connFD, exitMessage, strlen(exitMessage));
-                    if (writeBytes == -1) {
-                        perror("Error sending exit message to client");
-                    }
+                    // const char *exit2 = "Exiting the application!🌟 type ok \n";
+                    // ssize_t writeBytes2 = write(connFD, exit2, strlen(exit2));
+                    // if (writeBytes2 == -1) {
+                    //     perror("Error sending exit message to client");
+                    // }
 
-                    // Dummy read for acknowledgment from the client
-                    char readBuffer[100];
-                    bzero(readBuffer, sizeof(readBuffer)); // Clear the buffer
+                    // // Dummy read for acknowledgment from the client
+                    // char readBuffer3[100];
+                    // bzero(readBuffer3, sizeof(readBuffer3)); // Clear the buffer
 
-                    // Reading the acknowledgment from the client
-                    ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
-                    if (readBytes == -1) {
-                        perror("Error reading acknowledgment from client");
-                    } else if (readBytes > 0) {
-                        readBuffer[readBytes] = '\0'; // Null-terminate the received string
-                        printf("Received acknowledgment from client: %s\n", readBuffer);
-                    } else {
-                        printf("No acknowledgment received from client.\n");
-                    }
+                    // // Reading the acknowledgment from the client
+                    // ssize_t readBytes3 = read(connFD, readBuffer3, sizeof(readBuffer3) - 1);
+                    // if (readBytes3 == -1) {
+                    //     perror("Error reading acknowledgment from client");
+                    // } else if (readBytes3 > 0) {
+                    //     readBuffer[readBytes3] = '\0'; // Null-terminate the received string
+                    //     printf("Received acknowledgment from client: %s\n", readBuffer3);
+                    // } else {
+                    //     printf("No acknowledgment received from client.\n");
+                    // }
 
-                    // Close the client connection
-                    close(connFD);
-                    return false; //
+                    // // Close the client connection
+                    // close(connFD);
+                    break; 
                 default:
-                    writeBytes = write(connFD, "Invalid choice! Please try again.\n", 36);
-                    if (writeBytes == -1) {
-                        perror("Error sending invalid choice message to client!");
-                        return false;
-                    }
+                    write(connFD, "Invalid choice! Please try again.\n", 36);
             }
         }
     } else {
@@ -118,7 +126,6 @@ bool employee_operation_handler(int connFD) {
     }
     return true;
 }
-
 
 
 

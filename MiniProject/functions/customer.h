@@ -13,6 +13,33 @@ struct Customer loggedInCustomer;
 
 int semIdentifier;
 
+bool lock_critical_section(struct sembuf *semOp)
+{
+    semOp->sem_flg = SEM_UNDO;
+    semOp->sem_op = -1;
+    semOp->sem_num = 0;
+    int semopStatus = semop(semIdentifier, semOp, 1);
+    if (semopStatus == -1)
+    {
+        perror("Error while locking critical section");
+        return false;
+    }
+    return true;
+}
+
+
+bool unlock_critical_section(struct sembuf *semOp)
+{
+    semOp->sem_op = 1;
+    int semopStatus = semop(semIdentifier, semOp, 1);
+    if (semopStatus == -1)
+    {
+        perror("Error while operating on semaphore!");
+        _exit(1);
+    }
+    return true;
+}
+
 // Function Prototypes =================================
 
 bool customer_operation_handler(int connFD);
@@ -33,6 +60,12 @@ bool apply_loan(int connFD);
 // =====================================================
 
 // Function Definition =================================
+
+
+
+
+
+
 
 
 bool customer_operation_handler(int connFD) {
@@ -164,6 +197,7 @@ bool customer_operation_handler(int connFD) {
 
 
 
+
 bool deposit(int connFD) {
     char readBuffer[1000];
     ssize_t readBytes, writeBytes;
@@ -173,18 +207,18 @@ bool deposit(int connFD) {
     long int depositAmount = 0;
 
     // Lock the critical section
-    struct sembuf semOp;
-    lock_critical_section(&semOp);
+    // struct sembuf semOp;
+    // lock_critical_section(&semOp);
 
     if (!get_account_details(connFD, &account)) {
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
     if (!account.active) {
         write(connFD, ACCOUNT_DEACTIVATED, strlen(ACCOUNT_DEACTIVATED));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -192,7 +226,7 @@ bool deposit(int connFD) {
     writeBytes = write(connFD, DEPOSIT_AMOUNT, strlen(DEPOSIT_AMOUNT));
     if (writeBytes == -1) {
         perror("Error writing DEPOSIT_AMOUNT prompt to client!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -200,7 +234,7 @@ bool deposit(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1) {
         perror("Error reading deposit amount from client!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -208,7 +242,7 @@ bool deposit(int connFD) {
     if (depositAmount <= 0) {
         writeBytes = write(connFD, DEPOSIT_AMOUNT_INVALID, strlen(DEPOSIT_AMOUNT_INVALID));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -216,7 +250,7 @@ bool deposit(int connFD) {
     // Here, the receiverAccNumber is the same as the sender's accountNumber
     int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance + depositAmount, 0 ,account.accountNumber);
     if (newTransactionID < 0) {
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false; // Handle transaction logging failure
     }
 
@@ -227,7 +261,7 @@ bool deposit(int connFD) {
     int accountFileDescriptor = open(ACCOUNT_FILE, O_RDWR);
     if (accountFileDescriptor == -1) {
         perror("Error opening account file for updating!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -235,7 +269,7 @@ bool deposit(int connFD) {
     if (offset == -1) {
         perror("Error seeking in account file!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -243,7 +277,7 @@ bool deposit(int connFD) {
     if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
         perror("Error obtaining write lock on account record!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -253,7 +287,7 @@ bool deposit(int connFD) {
         lock.l_type = F_UNLCK;
         fcntl(accountFileDescriptor, F_SETLK, &lock);
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -266,9 +300,10 @@ bool deposit(int connFD) {
     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
     get_balance(connFD);
-    unlock_critical_section(&semOp);
+    // unlock_critical_section(&semOp);
     return true;
 }
+
 
 
 
@@ -282,12 +317,12 @@ bool withdraw(int connFD) {
     long int withdrawAmount = 0;
 
     // Lock the critical section
-    struct sembuf semOp;
-    lock_critical_section(&semOp);
+    // struct sembuf semOp;
+    // lock_critical_section(&semOp);
 
     // Get account details
     if (!get_account_details(connFD, &account)) {
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         perror("Failed to get account details");
         return false;
     }
@@ -295,7 +330,7 @@ bool withdraw(int connFD) {
     if (!account.active) {
         write(connFD, ACCOUNT_DEACTIVATED, strlen(ACCOUNT_DEACTIVATED));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -303,7 +338,7 @@ bool withdraw(int connFD) {
     writeBytes = write(connFD, WITHDRAW_AMOUNT, strlen(WITHDRAW_AMOUNT));
     if (writeBytes == -1) {
         perror("Error writing WITHDRAW_AMOUNT message to client!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -312,7 +347,7 @@ bool withdraw(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1) {
         perror("Error reading withdraw amount from client!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -325,7 +360,7 @@ bool withdraw(int connFD) {
         // Pass account.accountNumber for both sender and receiver since it's a withdrawal
         int newTransactionID = write_transaction_to_file(account.accountNumber, account.balance, account.balance - withdrawAmount, 1, account.accountNumber);
         if (newTransactionID < 0) {
-            unlock_critical_section(&semOp);
+            // unlock_critical_section(&semOp);
             return false; // Handle transaction logging failure
         }
 
@@ -336,7 +371,7 @@ bool withdraw(int connFD) {
         int accountFileDescriptor = open(ACCOUNT_FILE, O_RDWR);
         if (accountFileDescriptor == -1) {
             perror("Error opening account file for updating!");
-            unlock_critical_section(&semOp);
+            // unlock_critical_section(&semOp);
             return false;
         }
 
@@ -345,7 +380,7 @@ bool withdraw(int connFD) {
         if (offset == -1) {
             perror("Error seeking in account file!");
             close(accountFileDescriptor);
-            unlock_critical_section(&semOp);
+            // unlock_critical_section(&semOp);
             return false;
         }
 
@@ -354,7 +389,7 @@ bool withdraw(int connFD) {
         if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
             perror("Error obtaining write lock on account record!");
             close(accountFileDescriptor);
-            unlock_critical_section(&semOp);
+            // unlock_critical_section(&semOp);
             return false;
         }
 
@@ -365,7 +400,7 @@ bool withdraw(int connFD) {
             lock.l_type = F_UNLCK; // Unlock on error
             fcntl(accountFileDescriptor, F_SETLK, &lock);
             close(accountFileDescriptor);
-            unlock_critical_section(&semOp);
+            // unlock_critical_section(&semOp);
             return false;
         }
 
@@ -380,13 +415,13 @@ bool withdraw(int connFD) {
 
         // Get the updated balance for the client
         get_balance(connFD);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return true;
     } else {
         // Invalid withdrawal amount
         writeBytes = write(connFD, WITHDRAW_AMOUNT_INVALID, strlen(WITHDRAW_AMOUNT_INVALID));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 }
@@ -403,7 +438,7 @@ bool get_balance(int connFD)
         bzero(buffer, sizeof(buffer));
         if (account.active)
         {
-            sprintf(buffer, "You have ₹ %ld imaginary money in our bank!^", account.balance);
+            sprintf(buffer, "You have ₹ %ld imaginary money in our bank!\ntype ok ", account.balance);
             write(connFD, buffer, strlen(buffer));
         }
         else
@@ -427,19 +462,19 @@ bool transfer_funds(int connFD) {
     long transferAmount = 0;
 
     // Lock the critical section
-    struct sembuf semOp;
-    lock_critical_section(&semOp);
+    // struct sembuf semOp;
+    // lock_critical_section(&semOp);
 
     // Get sender's account details
     if (!get_account_details(connFD, &senderAccount)) {
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
     if (!senderAccount.active) {
         write(connFD, "Account deactivated", 20);
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -447,7 +482,7 @@ bool transfer_funds(int connFD) {
     writeBytes = write(connFD, "Enter the account ID of the recipient: ", 40);
     if (writeBytes == -1) {
         perror("Error writing recipient account prompt!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -455,7 +490,7 @@ bool transfer_funds(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1) {
         perror("Error reading recipient account ID!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -465,7 +500,7 @@ bool transfer_funds(int connFD) {
     if (receiverAccountNumber == senderAccount.accountNumber) {
         write(connFD, "Cannot transfer funds to the same account!", 42);
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -473,14 +508,14 @@ bool transfer_funds(int connFD) {
     receiverAccount.accountNumber = receiverAccountNumber;
     if (!get_account_details(receiverAccountNumber, &receiverAccount)) {
         write(connFD, "Recipient account not found!", 29);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
     if (!receiverAccount.active) {
         write(connFD, "Recipient account is deactivated!\ntype ok ", strlen("Recipient account is deactivated!\ntype ok "));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -488,7 +523,7 @@ bool transfer_funds(int connFD) {
     writeBytes = write(connFD, "Enter the amount to transfer: ", 30);
     if (writeBytes == -1) {
         perror("Error writing transfer amount prompt!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -496,7 +531,7 @@ bool transfer_funds(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
     if (readBytes == -1) {
         perror("Error reading transfer amount!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -505,7 +540,7 @@ bool transfer_funds(int connFD) {
     if (transferAmount <= 0 || senderAccount.balance < transferAmount) {
         writeBytes = write(connFD, "Insufficient funds or invalid amount!", 37);
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -520,7 +555,7 @@ bool transfer_funds(int connFD) {
 
 
     if (newSenderTransactionID < 0) {
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false; // Handle transaction logging failure
     }
 
@@ -531,7 +566,7 @@ bool transfer_funds(int connFD) {
     int accountFileDescriptor = open(ACCOUNT_FILE, O_WRONLY);
     if (accountFileDescriptor == -1) {
         perror("Error opening account file for updating sender!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -539,7 +574,7 @@ bool transfer_funds(int connFD) {
     if (offset == -1) {
         perror("Error seeking in account file for sender!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -547,7 +582,7 @@ bool transfer_funds(int connFD) {
     if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
         perror("Error obtaining write lock on sender account record!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -557,7 +592,7 @@ bool transfer_funds(int connFD) {
         lock.l_type = F_UNLCK;
         fcntl(accountFileDescriptor, F_SETLK, &lock);
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -570,7 +605,7 @@ bool transfer_funds(int connFD) {
     accountFileDescriptor = open(ACCOUNT_FILE, O_WRONLY);
     if (accountFileDescriptor == -1) {
         perror("Error opening account file for updating receiver!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -586,7 +621,7 @@ bool transfer_funds(int connFD) {
 
     if (newReceiverTransactionID < 0) {
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false; // Handle transaction logging failure
     }
 
@@ -598,7 +633,7 @@ bool transfer_funds(int connFD) {
     if (offset == -1) {
         perror("Error seeking in account file for receiver!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -606,7 +641,7 @@ bool transfer_funds(int connFD) {
     if (fcntl(accountFileDescriptor, F_SETLKW, &lock) == -1) {
         perror("Error obtaining write lock on receiver account record!");
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -616,7 +651,7 @@ bool transfer_funds(int connFD) {
         lock.l_type = F_UNLCK;
         fcntl(accountFileDescriptor, F_SETLK, &lock);
         close(accountFileDescriptor);
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
@@ -626,16 +661,16 @@ bool transfer_funds(int connFD) {
     close(accountFileDescriptor);
 
     // Notify sender and receiver
-    writeBytes = write(connFD, "Transfer successful!^", 22);
+    writeBytes = write(connFD, "Transfer successful! type ok ", 30);
     if (writeBytes == -1) {
         perror("Error sending transfer success message!");
-        unlock_critical_section(&semOp);
+        // unlock_critical_section(&semOp);
         return false;
     }
 
     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
-    unlock_critical_section(&semOp);
+    // unlock_critical_section(&semOp);
     return true;
 }
 
@@ -783,33 +818,7 @@ bool change_password(int connFD)
 
 
 
-bool lock_critical_section(struct sembuf *semOp)
-{
-    semOp->sem_flg = SEM_UNDO;
-    semOp->sem_op = -1;
-    semOp->sem_num = 0;
-    int semopStatus = semop(semIdentifier, semOp, 1);
-    if (semopStatus == -1)
-    {
-        perror("Error while locking critical section");
-        return false;
-    }
-    return true;
-}
 
-
-
-bool unlock_critical_section(struct sembuf *semOp)
-{
-    semOp->sem_op = 1;
-    int semopStatus = semop(semIdentifier, semOp, 1);
-    if (semopStatus == -1)
-    {
-        perror("Error while operating on semaphore!");
-        _exit(1);
-    }
-    return true;
-}
 
 
 

@@ -6,8 +6,8 @@
 
 // Welcome Message
 #define INITIAL_PROMPT  \
-    "\n\n====================================================\n" \
-                    "🏦 Welcome to Pune Jatan Societal Bank! 🌟\n" \
+    "\n\n============================================================\n" \
+                    "🏦 Welcome to Pune Janta Societal Bank! 🌟\n" \
     "============================================================\n" \
                        "Who are you?\n" \
                        "1. Admin 🧑‍💼\n" \
@@ -124,11 +124,11 @@
 
 #define DEPOSIT_AMOUNT "💵 How much do you want to add to your bank? "
 #define DEPOSIT_AMOUNT_INVALID "❌ You seem to have entered an invalid amount!^"
-#define DEPOSIT_AMOUNT_SUCCESS "✅ The specified amount has been successfully added to your bank account!^"
+#define DEPOSIT_AMOUNT_SUCCESS "✅ The specified amount has been successfully added to your bank account! type ok "
 
 #define WITHDRAW_AMOUNT "💸 How much do you want to withdraw from your bank? "
 #define WITHDRAW_AMOUNT_INVALID "❌ You seem to have either entered an invalid amount or you don't have enough money in your bank to withdraw the specified amount.^"
-#define WITHDRAW_AMOUNT_SUCCESS "✅ The specified amount has been successfully withdrawn from your bank account!^"
+#define WITHDRAW_AMOUNT_SUCCESS "✅ The specified amount has been successfully withdrawn from your bank account! type ok " 
 
 #define PASSWORD_CHANGE_OLD_PASS "🔒 Enter your old password: "
 #define PASSWORD_CHANGE_OLD_PASS_INVALID "❌ The entered password doesn't seem to match the old password."
