@@ -55,7 +55,8 @@ body {
   }
 
 .navbar-dark .navbar-nav .nav-link {
-    color: rgba(28, 5, 5, 0.901);
+    font-size: 1.2rem;
+    color:rgba(251, 246, 237, 0.845);
 }
 
 .navbar-dark .navbar-nav .nav-link:hover{
@@ -115,41 +116,55 @@ p {
     padding: 5% 2% 5% 2%;
 }
 
-.food-cart{
+#menu-section{
     position: relative;
     width: 100%;
-    height: 100vh; 
+    min-height: 100vh;
     background-size: cover;
     background-position: center;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-wrap: wrap;
 }
 
+#food-cart {
+    position: relative;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    padding: 7% 5%;
+}
 
 .food-box {
     width: 250px;
-    border: 1px solid #ddd;
-    background-color: #ffffff;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border:0;
     overflow: hidden;
     font-family: Arial, sans-serif;
 }
 
-/* Rounded top section with gradient */
 .food-box-header {
-    width: 100%;
-    height: 100%;
-    display:flex;
+    width: 130%;
+    left: -15%;
+    top: 1%;
+    height: 100vh;
     background-image: radial-gradient(circle, #f9a825, #ffeb99);
     border-top-left-radius: 50% 50%;
     border-top-right-radius: 50% 50%;
     position: relative;
 }
 
-/* Main content section */
+.menu-title{
+    width:100%;
+    height:40%;
+}
+
 .food-content {
     display: flex;
     flex-direction: column;
@@ -157,17 +172,16 @@ p {
     text-align: left;
 }
 
-/* Image container */
 .food-image {
-    width: 100%;
+    width: 130%;
+    position: relative;
+    left:-15%;
     height: 200px;
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
     border-radius: 8px;
     margin-bottom: 15px;
-    position: relative;
-    top:0;
 }
 
 /* Food title and price */
@@ -185,7 +199,7 @@ p {
 
 .food-price {
     font-weight: bold;
-    color: #f57c00;
+    color: #f5a700;
 }
 
 /* Description */
@@ -204,7 +218,7 @@ p {
 
 .add-to-cart-btn {
     padding: 5px 10px;
-    background-color: #4caf50;
+    background-color: #ff0051;
     color: white;
     border: none;
     border-radius: 5px;
@@ -213,7 +227,50 @@ p {
 
 .food-rating {
     font-size: 0.9em;
-    color: #fbc02d;
+    color: #ff0051;
     display: flex;
     align-items: center;
+}
+.color-maroon{
+    color: #ff0051;
+}
+
+h1.order-food{
+    background-color: rgb(255, 204, 0);
+    color:rgba(0, 0, 0, 0.793);
+    text-align:center;
+    padding: 2% 0;
+    font-size: 2.7rem;
+    user-select: none;
+    font-weight: 700;
+    font-family: 'Montserrat-Black', sans-serif;
+}
+
+footer{
+    width:100%;
+    height:15%;
+    background-color: rgb(255, 204, 0);
+    text-align: center;
+    font-family: 'Montserrat-Black', sans-serif;
+    font-weight: 600;
+}
+
+
+
+.background-login {
+    background-image: url("../yummyImages/login-background.jpg"); 
+    background-position: center;
+    background-size: cover;
+    width: 100%;
+    height: 100vh;
+  }
+  
+.bg-glass {
+   background-color: rgb(230, 200, 124,0.1) !important;
+   backdrop-filter: saturate(200%) blur(25px);
+}
+
+
+.login-description{
+    font-family: 'Montserrat-Black', sans-serif;
 }
