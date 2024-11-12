@@ -21,9 +21,7 @@
     <section id="title">
 
         <div class="overlay">
-            
-        <!-- Nav Bar -->
-
+        
         <div class="container-fluid" style="padding: 3% 15%">
             <nav class="navbar navbar-expand-lg navbar-dark" style="padding-bottom: 4.5rem;">
                 <a class="navbar-brand" style="user-select: none; font-size: 2.5rem; color:crimson"><i class="fa-solid fa-utensils"></i> Yummy</a
@@ -44,16 +42,16 @@
           <div class="collapse navbar-collapse" id="navbarNav1">
             <ul class="navbar-nav ms-auto">
               <li class="nav-item">
-                <a class="nav-link" style="font-size: 1.2rem">HOME</a>
+                <a class="nav-link" >HOME</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" style="font-size: 1.2rem" >CART</a>
+                    <a class="nav-link" >CART</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" style="font-size: 1.2rem" >PROFILE</a>
+                    <a class="nav-link">PROFILE</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" style="font-size: 1.2rem" >LOGIN</a>
+                    <a class="nav-link"  href="./signup.html">LOGIN</a>
                 </li>
                 </ul>
         </div>
@@ -102,7 +100,12 @@
 
 
 
-    <section id="food-cart">
+    <section id="menu-section d-flex">
+        <div class="menu-title z-3 text-dark">
+            <h1 class="order-food">Order Menu</h1>
+        </div>
+
+        <div id="food-cart">
 
         <div class="food-box position-relative">
             <div class="food-box-header position-absolute z-1"></div>
@@ -111,22 +114,90 @@
                 <div class="food-image" style="background-image: url('../yummyImages/burger.png');"></div>
         
                 <div class="food-details">
-                    <div class="food-title">Pizza Margherita</div>
-                    <div class="food-price">$12.99</div>
+                    <div class="food-title">Paneer Burger</div>
+                    <div class="food-price">$8.99</div>
                 </div>
         
                 <div class="food-description">Classic margherita with fresh basil, tomatoes, and mozzarella cheese.</div>
         
                 <div class="food-actions">
                     <button class="add-to-cart-btn">Add to Cart</button>
-                    <div class="food-rating">⭐ 4.5</div>
+                    <div class="food-rating"><i class="fa-solid fa-star m-1"></i>4.5</div>
                 </div>
             </div>
         </div>
+
+        <div class="food-box position-relative">
+            <div class="food-box-header position-absolute z-1"></div>
+
+            <div class="food-content position-relative z-4">
+                <div class="food-image" style="background-image: url('../yummyImages/GourmentBurger.png');"></div>
         
+                <div class="food-details">
+                    <div class="food-title">Double Wopper</div>
+                    <div class="food-price">$15.99</div>
+                </div>
+        
+                <div class="food-description">Classic margherita with fresh basil, tomatoes, and mozzarella cheese.</div>
+        
+                <div class="food-actions">
+                    <button class="add-to-cart-btn">Add to Cart</button>
+                     <div class="food-rating"><i class="fa-solid fa-star m-1"></i>4.5</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="food-box position-relative">
+            <div class="food-box-header position-absolute z-1"></div>
+
+            <div class="food-content position-relative z-4">
+                <div class="food-image" style="background-image: url('../yummyImages/fish-burger.png');"></div>
+        
+                <div class="food-details">
+                    <div class="food-title">Classic Burger</div>
+                    <div class="food-price">$5.99</div>
+                </div>
+        
+                <div class="food-description">Classic margherita with fresh basil, tomatoes, and mozzarella cheese.</div>
+        
+                <div class="food-actions">
+                    <button class="add-to-cart-btn">Add to Cart</button>
+                     <div class="food-rating"><i class="fa-solid fa-star m-1"></i>4.5</div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="food-box position-relative">
+            <div class="food-box-header position-absolute z-1"></div>
+
+            <div class="food-content position-relative z-4">
+                <div class="food-image" style="background-image: url('../yummyImages/YummySpecial.png');"></div>
+        
+                <div class="food-details">
+                    <div class="food-title">Yummy Special</div>
+                    <div class="food-price">$20.00</div>
+                </div>
+        
+                <div class="food-description">Classic margherita with fresh basil, tomatoes, and mozzarella cheese.</div>
+        
+                <div class="food-actions">
+                    <button class="add-to-cart-btn">Add to Cart</button>
+                     <div class="food-rating"><i class="fa-solid fa-star m-1"></i>4.5</div>
+                </div>
+            </div>
+        </div>
+
+
+
+        </div>
+        <footer>
+            <div class="footer-text">
+                Author: Omkar Satav
+            </div>
+        </footer>
     </section>
-
-
 
 </body>
 
