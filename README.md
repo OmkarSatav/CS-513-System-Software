@@ -1,3 +1,5 @@
+# ESD Assignment No 1: Yummy Website (HTML, CSS) -> https://omkarsatav.github.io/ESD-Assignment-No-1/
+
 # System Software Lab Exercises & Mini Project
 
 Welcome to the repository for the System Software Lab Exercises and Mini Project! This repository contains various lab exercises focused on file and process management, as well as a comprehensive mini project on a Banking Management System.
