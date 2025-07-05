@@ -33,7 +33,7 @@ void main()
     }
 
     serverAddress.sin_family = AF_INET;                // IPv4
-    serverAddress.sin_port = htons(8081);              // Server will listen to port 8080
+    serverAddress.sin_port = htons(8775);              // Server will listen to port 8775
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY); // Binds the socket to all interfaces
 
     socketBindStatus = bind(socketFileDescriptor, (struct sockaddr *)&serverAddress, sizeof(serverAddress));

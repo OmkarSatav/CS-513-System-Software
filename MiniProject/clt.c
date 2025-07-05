@@ -22,7 +22,7 @@ int main()
     }
 
     serverAddress.sin_family = AF_INET;                // IPv4
-    serverAddress.sin_port = htons(8081);              // Port number
+    serverAddress.sin_port = htons(8775);              // Port number
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY); // Bind to all available interfaces
 
     // Attempt to connect to the server
@@ -41,8 +41,6 @@ int main()
     close(socketFileDescriptor);
     return 0;
 }
-
-
 
 
 
