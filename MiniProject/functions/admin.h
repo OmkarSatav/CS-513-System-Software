@@ -611,10 +611,12 @@ void change_admin_password(int connFD) {
 
     // Validate password length
     if (strlen(newPassword) < 6) {
-        const char *errorMessage = "Password must be at least 6 characters long.\n";
+        const char *errorMessage = "Password must be at least 6 characters long.\n^";
         if (write(connFD, errorMessage, strlen(errorMessage)) == -1) {
             perror("Error sending password length error to client");
         }
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return;
     }
 
@@ -622,10 +624,12 @@ void change_admin_password(int connFD) {
     file = fopen(CREDENTIALS_FILE, "w");
     if (!file) {
         perror("Error opening credentials file");
-        const char *errorMessage = "Error updating password. Please try again.\n";
+        const char *errorMessage = "Error updating password. Please try again.\n^";
         if (write(connFD, errorMessage, strlen(errorMessage)) == -1) {
             perror("Error sending file error message to client");
         }
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return;
     }
 
@@ -635,28 +639,35 @@ void change_admin_password(int connFD) {
         fprintf(file, "#endif\n") < 0) {
         perror("Error writing to credentials file");
         fclose(file);
-        const char *errorMessage = "Error updating password. Please try again.\n";
+        const char *errorMessage = "Error updating password. Please try again.\n^";
         if (write(connFD, errorMessage, strlen(errorMessage)) == -1) {
             perror("Error sending file write error message to client");
         }
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return;
     }
 
     // Close the file
     if (fclose(file) != 0) {
         perror("Error closing credentials file");
-        const char *errorMessage = "Error finalizing password update. Please try again.\n";
+        const char *errorMessage = "Error finalizing password update. Please try again.\n^";
         if (write(connFD, errorMessage, strlen(errorMessage)) == -1) {
             perror("Error sending file close error message to client");
         }
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return;
     }
 
     // Send success message back to the client
-    const char *successMessage = "Password updated successfully!\n";
+    const char *successMessage = "Password updated successfully!\n^";
     if (write(connFD, successMessage, strlen(successMessage)) == -1) {
         perror("Error sending success message to client");
     }
+
+    bzero(readBuffer, sizeof(readBuffer));
+    read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
 }
 
 
@@ -959,6 +970,7 @@ bool modify_customer_info(int connFD){
         return false;
     }
 
+
     readBytes = read(customerFileDescriptor, &customer, sizeof(struct Customer));
     if (readBytes != sizeof(struct Customer)) {
         perror("Error reading customer record!");
@@ -1045,6 +1057,8 @@ bool modify_customer_info(int connFD){
     }
 
     writeBytes = write(customerFileDescriptor, &customer, sizeof(customer));
+
+
     if (writeBytes != sizeof(customer)) {
         perror("Error writing updated record!");
         close(customerFileDescriptor);
@@ -1527,8 +1541,10 @@ bool modify_employee_role(int connFD) {
     }
 
     snprintf(writeBuffer, sizeof(writeBuffer),
-             "Current Role: %d (1=Manager, 2=Bank Employee)\n", employee.employeeType);
+             "Current Role: %d (1=Manager, 2=Bank Employee)\n^", employee.employeeType);
     write(connFD, writeBuffer, strlen(writeBuffer));
+
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // dummy read      i am not sure about this check once.
 
     writeBytes = write(connFD,
                        "Enter new role (1=Manager, 2=Bank Employee): ",
@@ -1542,7 +1558,8 @@ bool modify_employee_role(int connFD) {
 
     newRole = atoi(readBuffer);
     if (newRole != 1 && newRole != 2) {
-        write(connFD, "Invalid role value.\n", 20);
+        write(connFD, "Invalid role value.\n^", 20);
+        readBytes = read(connFD, readBuffer, sizeof(readBuffer));           // dummy read  check this one also, whether working correctly
         return false;
     }
 
@@ -1630,7 +1647,7 @@ bool find_employee_by_id(int employeeId, struct Employee *employee) {
 
 
 bool update_employee_role(int employeeId, int newRole) {
-    FILE *file = fopen(EMPLOYEE_FILE, "rb+");
+    FILE *file = fopen(EMPLOYEE_FILE, "rb+");                           
     if (!file) {
         perror("Error opening employee file");
         return false;
@@ -1639,7 +1656,7 @@ bool update_employee_role(int employeeId, int newRole) {
     struct Employee employee;
     while (fread(&employee, sizeof(employee), 1, file) == 1) {
         if (employee.id == employeeId) {
-            employee.employeeType = newRole;
+            employee.employeeType = newRole;                                                 // This is not safe, as locking is not implemented here.
             fseek(file, -sizeof(employee), SEEK_CUR);
             size_t written = fwrite(&employee, sizeof(employee), 1, file);
             fclose(file);

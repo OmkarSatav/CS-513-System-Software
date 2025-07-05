@@ -22,9 +22,7 @@
 #include "./server-constants.h"
 
 
-bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager);
-
-
+bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager);               // done
 bool login_handler(bool isAdmin, int connFD, struct Customer *ptrToCustomer);
 bool get_account_details(int connFD, struct Account *customerAccount);
 bool get_customer_details(int connFD, int customerID);
@@ -177,7 +175,10 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
     char *endptr;
     int enteredID = strtol(readBuffer, &endptr, 10);
     if (*endptr != '\0' || enteredID < 0) {
-        write(connFD, "Invalid login ID. Please enter a valid numeric ID.\n", 50);
+        snprintf(writeBuffer, sizeof(writeBuffer), "Invalid login ID. Please enter a valid numeric ID.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // dummy read
         return false;
     }
 
@@ -185,7 +186,10 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
     int employeeFileFD = open("./records/employee.bank", O_RDONLY);
     if (employeeFileFD == -1) {
         perror("Error opening employee file!");
-        write(connFD, "Server error: Unable to access employee records.\n", 50);
+        snprintf(writeBuffer, sizeof(writeBuffer), "Server error: Unable to access employee records.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // dummy read
         return false;
     }
 
@@ -194,7 +198,10 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
     if (offset == -1) {
         perror("Error seeking to employee record!");
         close(employeeFileFD);
-        write(connFD, "The provided login ID does not exist.\n", 38);
+        snprintf(writeBuffer, sizeof(writeBuffer), "The provided login ID does not exist.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // dummy read
         return false;
     }
 
@@ -203,6 +210,10 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
     if (fcntl(employeeFileFD, F_SETLKW, &lock) == -1) {
         perror("Error obtaining read lock on employee record!");
         close(employeeFileFD);
+        snprintf(writeBuffer, sizeof(writeBuffer), "Server error while accessing employee record.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                                       // dummy read
         return false;
     }
 
@@ -212,6 +223,10 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
         lock.l_type = F_UNLCK;
         fcntl(employeeFileFD, F_SETLK, &lock);
         close(employeeFileFD);
+        snprintf(writeBuffer, sizeof(writeBuffer), "Error reading employee data.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                                       // dummy read
         return false;
     }
 
@@ -222,12 +237,15 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
 
     // Validate login ID
     if (employee.id != enteredID) {
-        write(connFD, "The provided login ID does not exist.\n", 38);
+        write(connFD, "The provided login ID does not exist.\n^", 38);
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return false;
     }
 
     // Prompt for password
-    writeBytes = write(connFD, "Please enter your password: ", 28);
+    snprintf(writeBuffer, sizeof(writeBuffer), "Please enter your password:");
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1) {
         perror("Error writing password prompt to client!");
         return false;
@@ -248,13 +266,19 @@ bool login_user(int connFD, struct Employee *ptrToEmployee, bool isManager) {
 
     // Validate password
     if (strcmp(readBuffer, employee.password) == 0) {
-        *ptrToEmployee = employee; // Store employee details
-        write(connFD, "Login successful! Welcome.\n", 28);
+        *ptrToEmployee = employee;
+        snprintf(writeBuffer, sizeof(writeBuffer), "Login successful! Welcome.^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                               // dummy read  added right now, please check
         return true;
     }
 
     // Invalid password
-    write(connFD, "Invalid password. Please try again.\n", 36);
+    snprintf(writeBuffer, sizeof(writeBuffer), "Invalid password. Please try again.^");
+    write(connFD, writeBuffer, strlen(writeBuffer));
+    bzero(readBuffer, sizeof(readBuffer));
+    read(connFD, readBuffer, sizeof(readBuffer));                                   // dummy read  added right now, please check
     return false;
 }
 
@@ -439,18 +463,24 @@ bool admin_login_handler(int connFD) {
 
         // Validate password
         if (strcmp(readBuffer, ADMIN_PASSWORD) == 0) {
-            strcpy(writeBuffer, "🔑 Login successful! Welcome, Admin.\n");
+            strcpy(writeBuffer, "🔑 Login successful! Welcome, Admin.\n^");
             write(connFD, writeBuffer, strlen(writeBuffer));
+            bzero(readBuffer, sizeof(readBuffer));
+            read(connFD, readBuffer, sizeof(readBuffer));       // dummy read
             return true; // Admin login successful
         } else {
-            strcpy(writeBuffer, "❌ Invalid password! Please try again.\n");
+            strcpy(writeBuffer, "❌ Invalid password! Please try again.\n^");
             write(connFD, writeBuffer, strlen(writeBuffer));
+            bzero(readBuffer, sizeof(readBuffer));
+            read(connFD, readBuffer, sizeof(readBuffer));       // dummy read
             return false; // Invalid password
         }
     } else {
-        strcpy(writeBuffer, "❌ Invalid login ID! Please try again.\n");
+        strcpy(writeBuffer, "❌ Invalid login ID! Please try again.^");
         write(connFD, writeBuffer, strlen(writeBuffer));
-        return false; // Invalid login ID
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));       // dummy read
+        return false;                               // Invalid login ID
     }
 }
 
@@ -581,8 +611,10 @@ bool login_handler(bool isAdmin, int connFD, struct Customer *ptrToCustomerID) {
             write(customerFileFD, &customer, sizeof(struct Customer));
             close(customerFileFD);
 
-            strcpy(writeBuffer, "🔑 Login successful! Welcome, Customer.\n");
+            strcpy(writeBuffer, "🔑 Login successful! Welcome, Customer.\n^");
             write(connFD, writeBuffer, strlen(writeBuffer));
+            bzero(readBuffer, sizeof(readBuffer));
+            readBytes = read(connFD, readBuffer, sizeof(readBuffer));
             return true;
         } else {
             strcpy(writeBuffer, INVALID_PASSWORD);
