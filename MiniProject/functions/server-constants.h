@@ -108,7 +108,7 @@
 "========================\n" \
 "1. Get Customer Details 📄\n" \
 "2. Deposit Money 💵\n" \
-"3. Withdraw Money 💸\n" \
+"3. Withdraw Money 💸\n" \PASSWORD_CHANGE_NEW_PASS
 "4. Get Balance 💰\n" \
 "5. Get Transaction Information 📊\n" \
 "6. Change Password 🔐\n" \
@@ -141,7 +141,7 @@
 
 // ========== MANAGER SPECIFIC TEXT=====================
 
-#define MANAGER_LOGIN_SUCCESS "✅ Login successful! Welcome, Manager!\n"
+#define MANAGER_LOGIN_SUCCESS "✅ Login successful! Welcome, Manager!\n^"
 #define MANAGER_MENU \
 "\n\n========================\n" \
 "       MANAGER MENU      \n" \
