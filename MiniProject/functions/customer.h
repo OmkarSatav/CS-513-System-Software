@@ -11,34 +11,7 @@
 
 struct Customer loggedInCustomer;
 
-int semIdentifier;
 
-bool lock_critical_section(struct sembuf *semOp)
-{
-    semOp->sem_flg = SEM_UNDO;
-    semOp->sem_op = -1;
-    semOp->sem_num = 0;
-    int semopStatus = semop(semIdentifier, semOp, 1);
-    if (semopStatus == -1)
-    {
-        perror("Error while locking critical section");
-        return false;
-    }
-    return true;
-}
-
-
-bool unlock_critical_section(struct sembuf *semOp)
-{
-    semOp->sem_op = 1;
-    int semopStatus = semop(semIdentifier, semOp, 1);
-    if (semopStatus == -1)
-    {
-        perror("Error while operating on semaphore!");
-        _exit(1);
-    }
-    return true;
-}
 
 // Function Prototypes =================================
 
@@ -49,10 +22,7 @@ bool get_balance(int connFD);
 bool transfer_funds(int connFD);
 bool update_account_in_file(struct Account *account);
 bool change_password(int connFD);
-bool lock_critical_section(struct sembuf *semOp);
-bool unlock_critical_section(struct sembuf *sem_op);
-void write_transaction_to_array(int *transactionArray, int ID);
-bool write_feedback(int connFD);
+bool write_feedback(int connFD);                                                         // major change, full file locking, to avoid inconsistency.
 // int write_transaction_to_file(int accountNumber, long int oldBalance, long int newBalance, int operation);
 int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber); 
 bool apply_loan(int connFD);
@@ -200,18 +170,18 @@ bool customer_operation_handler(int connFD) {
     // Loop until a successful login or exit
     while (1) {
         // Prompt for login ID
-        if (write(connFD, "🔑 Enter your login ID: ", strlen("🔑 Enter your login ID: ")) == -1) {
-            perror("Error while writing prompt for login ID to client");
-            return false;
-        }
+        // if (write(connFD, "🔑 Enter your login ID: ", strlen("🔑 Enter your login ID: ")) == -1) {             // I have commented, repeatitive.
+        //     perror("Error while writing prompt for login ID to client");
+        //     return false;
+        // }
 
-        bzero(readBuffer, sizeof(readBuffer));
-        readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
-        if (readBytes <= 0) {
-            perror("Error while reading login ID from client");
-            return false;
-        }
-        readBuffer[readBytes] = '\0'; // Null-terminate the string
+        // bzero(readBuffer, sizeof(readBuffer));
+        // readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+        // if (readBytes <= 0) {
+        //     perror("Error while reading login ID from client");
+        //     return false;
+        // }
+        // readBuffer[readBytes] = '\0'; // Null-terminate the string
 
         // Validate the login ID
         if (login_handler(false, connFD, &loggedInCustomer)) {
@@ -219,11 +189,15 @@ bool customer_operation_handler(int connFD) {
                 perror("Error while writing login success message to client");
                 return false;
             }
+            bzero(readBuffer, sizeof(readBuffer));
+            read(connFD, readBuffer, sizeof(readBuffer)); 
             break; // Exit the loop for successful login
         } else {
             if (write(connFD, CUSTOMER_LOGIN_ID_DOESNT_EXIST, strlen(CUSTOMER_LOGIN_ID_DOESNT_EXIST)) == -1) {
                 perror("Error while sending login failure message to client");
             }
+            bzero(readBuffer, sizeof(readBuffer));
+            read(connFD, readBuffer, sizeof(readBuffer)); 
         }
     }
 
@@ -768,7 +742,7 @@ bool get_balance(int connFD) {
 
     // Check if the account is active
     if (account.active) {
-        snprintf(buffer, sizeof(buffer), "You have ₹ %ld imaginary money in our bank!\ntype ok ", account.balance);
+        snprintf(buffer, sizeof(buffer), "You have ₹ %ld imaginary money in our bank!\n^", account.balance);
         if (write(connFD, buffer, strlen(buffer)) == -1) {
             perror("Error sending balance information to client");
             return false;
@@ -780,11 +754,8 @@ bool get_balance(int connFD) {
         }
     }
 
-    // Dummy read for acknowledgment
-    if (read(connFD, buffer, sizeof(buffer)) <= 0) {
-        perror("Error reading acknowledgment from client");
-        return false;
-    }
+    bzero(buffer, sizeof(buffer));
+    read(connFD, buffer, sizeof(buffer)             // Dummy read for acknowledgment
 
     return true;
 }
@@ -1016,6 +987,7 @@ bool get_balance(int connFD) {
 
 bool transfer_funds(int connFD) {
     char readBuffer[1000];
+    char writeBuffer[1000];
     ssize_t readBytes, writeBytes;
     struct Account senderAccount, receiverAccount;
     senderAccount.accountNumber = loggedInCustomer.account;
@@ -1029,16 +1001,15 @@ bool transfer_funds(int connFD) {
 
     // Check if sender's account is active
     if (!senderAccount.active) {
-        write(connFD, "Account deactivated", 20);
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        sprintf(writeBuffer, "Account deactivated^");  
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));           // Dummy read
         return false;
     }
 
     // Prompt for receiver's account ID
-    if (write(connFD, "Enter the account ID of the recipient: ", 40) == -1) {
-        perror("Error writing recipient account prompt!");
-        return false;
-    }
+    sprintf(writeBuffer, "Enter the account ID of the recipient: ");
+    write(connFD, writeBuffer, strlen(writeBuffer));
 
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
@@ -1052,7 +1023,9 @@ bool transfer_funds(int connFD) {
 
     // Check if the receiver is the same as the sender
     if (receiverAccountNumber == senderAccount.accountNumber) {
-        write(connFD, "Cannot transfer funds to the same account!", 42);
+        sprintf(writeBuffer, "Cannot transfer funds to the same account!^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
         return false;
     }
@@ -1060,22 +1033,25 @@ bool transfer_funds(int connFD) {
     // Retrieve receiver's account details
     receiverAccount.accountNumber = receiverAccountNumber;
     if (!get_account_details(receiverAccountNumber, &receiverAccount)) {
-        write(connFD, "Recipient account not found!", 29);
+        sprintf(writeBuffer, "Recipient account not found!^"); 
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));               // Dummy read
         return false;
     }
 
     // Check if receiver's account is active
     if (!receiverAccount.active) {
-        write(connFD, "Recipient account is deactivated!\ntype ok ", 42);
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        sprintf(writeBuffer, "Recipient account is deactivated!\n^"); 
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));               // Dummy read
         return false;
     }
 
     // Prompt for transfer amount
-    if (write(connFD, "Enter the amount to transfer: ", 30) == -1) {
-        perror("Error writing transfer amount prompt!");
-        return false;
-    }
+    sprintf(writeBuffer, "Enter the amount to transfer: ");
+    write(connFD, writeBuffer, strlen(writeBuffer));
 
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
@@ -1089,8 +1065,10 @@ bool transfer_funds(int connFD) {
 
     // Validate transfer amount
     if (transferAmount <= 0 || senderAccount.balance < transferAmount) {
-        write(connFD, "Insufficient funds or invalid amount!", 37);
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+        sprintf(writeBuffer, "Insufficient funds or invalid amount!^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                       / Dummy read
         return false;
     }
 
@@ -1125,15 +1103,12 @@ bool transfer_funds(int connFD) {
     }
 
     // Notify sender of success
-    if (write(connFD, "Transfer successful! type ok ", 30) == -1) {
-        perror("Error sending transfer success message!");
-        return false;
-    }
-
+    sprintf(writeBuffer, "Transfer successful!^"); 
+    write(connFD, writeBuffer, strlen(writeBuffer));
+    bzero(readBuffer, sizeof(readBuffer));
     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     return true;
 }
-
 
 
 
@@ -1283,17 +1258,9 @@ bool change_password(int connFD) {
     ssize_t readBytes, writeBytes;
     char readBuffer[1000], newPassword[1000];
 
-    // Lock the critical section
-    struct sembuf semOp = {0, -1, SEM_UNDO};
-    if (semop(semIdentifier, &semOp, 1) == -1) {
-        perror("Error while locking critical section");
-        return false;
-    }
-
     // Prompt for old password
     if (write(connFD, PASSWORD_CHANGE_OLD_PASS, strlen(PASSWORD_CHANGE_OLD_PASS)) == -1) {
         perror("Error writing PASSWORD_CHANGE_OLD_PASS message to client!");
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1302,23 +1269,21 @@ bool change_password(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
         perror("Error reading old password response from client");
-        unlock_critical_section(&semOp);
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the input
+    readBuffer[readBytes] = '\0';       // Null-terminate the input
 
     // Validate old password
     if (strcmp(readBuffer, loggedInCustomer.password) != 0) {
         write(connFD, PASSWORD_CHANGE_OLD_PASS_INVALID, strlen(PASSWORD_CHANGE_OLD_PASS_INVALID));
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));                       // Dummy read
         return false;
     }
 
     // Prompt for new password
     if (write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS)) == -1) {
         perror("Error writing PASSWORD_CHANGE_NEW_PASS message to client!");
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1327,7 +1292,6 @@ bool change_password(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
         perror("Error reading new password response from client");
-        unlock_critical_section(&semOp);
         return false;
     }
     readBuffer[readBytes] = '\0'; // Null-terminate the input
@@ -1336,7 +1300,6 @@ bool change_password(int connFD) {
     // Prompt for re-entering new password
     if (write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE)) == -1) {
         perror("Error writing PASSWORD_CHANGE_NEW_PASS_RE message to client!");
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1345,7 +1308,6 @@ bool change_password(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
         perror("Error reading new password re-enter response from client");
-        unlock_critical_section(&semOp);
         return false;
     }
     readBuffer[readBytes] = '\0'; // Null-terminate the input
@@ -1353,8 +1315,7 @@ bool change_password(int connFD) {
     // Validate new passwords match
     if (strcmp(readBuffer, newPassword) != 0) {
         write(connFD, PASSWORD_CHANGE_NEW_PASS_INVALID, strlen(PASSWORD_CHANGE_NEW_PASS_INVALID));
-        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-        unlock_critical_section(&semOp);
+        read(connFD, readBuffer, sizeof(readBuffer));                                   // Dummy read
         return false;
     }
 
@@ -1365,7 +1326,6 @@ bool change_password(int connFD) {
     int customerFileDescriptor = open(CUSTOMER_FILE, O_WRONLY);
     if (customerFileDescriptor == -1) {
         perror("Error opening customer file!");
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1374,7 +1334,6 @@ bool change_password(int connFD) {
     if (offset == -1) {
         perror("Error seeking to the customer record!");
         close(customerFileDescriptor);
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1383,7 +1342,6 @@ bool change_password(int connFD) {
     if (fcntl(customerFileDescriptor, F_SETLKW, &lock) == -1) {
         perror("Error obtaining write lock on customer record!");
         close(customerFileDescriptor);
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1393,7 +1351,6 @@ bool change_password(int connFD) {
         lock.l_type = F_UNLCK;
         fcntl(customerFileDescriptor, F_SETLK, &lock);
         close(customerFileDescriptor);
-        unlock_critical_section(&semOp);
         return false;
     }
 
@@ -1410,7 +1367,6 @@ bool change_password(int connFD) {
     }
 
     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-    unlock_critical_section(&semOp);
     return true;
 }
 
@@ -1605,7 +1561,7 @@ bool apply_loan(int connFD) {
 
     // Check if the account is active
     if (!account.active) {
-        write(connFD, "Account is deactivated.\n", strlen("Account is deactivated.\n"));
+        write(connFD, "Account is deactivated.\n^", strlen("Account is deactivated.\n^"));
         read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read for acknowledgment
         return false;
     }
@@ -1675,7 +1631,19 @@ bool apply_loan(int connFD) {
     newLoan.empID = -1; // No employee assigned yet
 
     // Write lock to ensure exclusive access while adding the new loan
-    struct flock writeLock = {F_WRLCK, SEEK_END, 0, 0, getpid()};
+    off_t offset = lseek(loanFileDescriptor, 0, SEEK_END);
+    if (offset == -1) {
+        perror("Error seeking to end of loan file");
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    struct flock writeLock;
+    writeLock.l_type = F_WRLCK;
+    writeLock.l_whence = SEEK_SET;
+    writeLock.l_start = offset;
+    writeLock.l_len = sizeof(struct Loan);
+    writeLock.l_pid = getpid();
     if (fcntl(loanFileDescriptor, F_SETLKW, &writeLock) == -1) {
         perror("Error obtaining write lock on loan file");
         close(loanFileDescriptor);
@@ -1699,11 +1667,13 @@ bool apply_loan(int connFD) {
     close(loanFileDescriptor);
 
     // Notify the client of success
-    const char *successMessage = "Loan application has been successfully submitted.\n";
+    const char *successMessage = "Loan application has been successfully submitted.\n^";
     if (write(connFD, successMessage, strlen(successMessage)) == -1) {
         perror("Error sending success message to client");
         return false;
     }
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer));
 
     return true;
 }
@@ -1866,6 +1836,13 @@ bool write_feedback(int connFD) {
     }
 
     // Determine the new feedback ID
+    struct flock lock = {F_WRLCK, SEEK_SET, 0, 0, getpid()};
+    if (fcntl(feedbackFileDescriptor, F_SETLKW, &lock) == -1) {
+        perror("Error obtaining read lock on feedback record!");
+        close(feedbackFileDescriptor);
+        return false;
+    }
+
     off_t fileSize = lseek(feedbackFileDescriptor, 0, SEEK_END);
     if (fileSize == 0) {
         newFeedback.id = 0; // First feedback ID
@@ -1878,12 +1855,12 @@ bool write_feedback(int connFD) {
         }
 
         // Read lock the last feedback record
-        struct flock lock = {F_RDLCK, SEEK_CUR, 0, sizeof(struct Feedback), getpid()};
-        if (fcntl(feedbackFileDescriptor, F_SETLKW, &lock) == -1) {
-            perror("Error obtaining read lock on feedback record!");
-            close(feedbackFileDescriptor);
-            return false;
-        }
+        // struct flock lock = {F_RDLCK, SEEK_CUR, 0, sizeof(struct Feedback), getpid()};
+        // if (fcntl(feedbackFileDescriptor, F_SETLKW, &lock) == -1) {
+        //     perror("Error obtaining read lock on feedback record!");
+        //     close(feedbackFileDescriptor);
+        //     return false;
+        // }
 
         // Read the last feedback record
         if (read(feedbackFileDescriptor, &lastFeedback, sizeof(struct Feedback)) != sizeof(struct Feedback)) {
@@ -1894,9 +1871,9 @@ bool write_feedback(int connFD) {
             return false;
         }
 
-        // Release the read lock
-        lock.l_type = F_UNLCK;
-        fcntl(feedbackFileDescriptor, F_SETLK, &lock);
+        // // Release the read lock
+        // lock.l_type = F_UNLCK;
+        // fcntl(feedbackFileDescriptor, F_SETLK, &lock);
 
         // Set the new feedback ID
         newFeedback.id = lastFeedback.id + 1;
@@ -1905,6 +1882,8 @@ bool write_feedback(int connFD) {
     // Prompt the client for feedback
     if (write(connFD, CUSTOMER_FEEDBACK, strlen(CUSTOMER_FEEDBACK)) == -1) {
         perror("Error writing CUSTOMER_FEEDBACK prompt to client!");
+        writeLock.l_type = F_UNLCK;
+        fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
         close(feedbackFileDescriptor);
         return false;
     }
@@ -1914,6 +1893,8 @@ bool write_feedback(int connFD) {
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
         perror("Error reading feedback from client!");
+        writeLock.l_type = F_UNLCK;
+        fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
         close(feedbackFileDescriptor);
         return false;
     }
@@ -1924,12 +1905,26 @@ bool write_feedback(int connFD) {
     newFeedback.message[sizeof(newFeedback.message) - 1] = '\0';
 
     // Write lock to ensure exclusive access while adding the new feedback
-    struct flock writeLock = {F_WRLCK, SEEK_END, 0, 0, getpid()};
-    if (fcntl(feedbackFileDescriptor, F_SETLKW, &writeLock) == -1) {
-        perror("Error obtaining write lock on feedback file!");
+    off_t offset = lseek(feedbackFileDescriptor, 0, SEEK_END);
+    if (offset == -1) {
+        perror("Error seeking to end of loan file");
+        writeLock.l_type = F_UNLCK;
+        fcntl(feedbackFileDescriptor, F_SETLK, &writeLock);
         close(feedbackFileDescriptor);
         return false;
     }
+
+    // struct flock writeLock;
+    // writeLock.l_type = F_WRLCK;
+    // writeLock.l_whence = SEEK_SET;
+    // writeLock.l_start = offset;
+    // writeLock.l_len = sizeof(struct Loan);
+    // writeLock.l_pid = getpid();
+    // if (fcntl(feedbackFileDescriptor, F_SETLKW, &writeLock) == -1) {
+    //     perror("Error obtaining write lock on feedback file!");
+    //     close(feedbackFileDescriptor);
+    //     return false;
+    // }
 
     // Write the new feedback record to the file
     if (write(feedbackFileDescriptor, &newFeedback, sizeof(struct Feedback)) == -1) {
@@ -1953,76 +1948,153 @@ bool write_feedback(int connFD) {
 
 
 
-int get_new_transaction_id() {
-    static int transactionID = 0;
-    // Increment the transaction ID for each new transaction
-    return ++transactionID;
-}
+// int get_new_transaction_id() {
+//     static int transactionID = 0;
+//     // Increment the transaction ID for each new transaction
+//     return ++transactionID;
+// }
 
 
 
 // int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
 //     struct Transaction transaction;
-//     // Get the unique transaction ID
+
+//     // Generate a unique transaction ID
 //     transaction.transactionID = get_new_transaction_id();
 //     transaction.accountNumber = accountNumber;
 //     transaction.operation = operation; // 0 = Withdraw, 1 = Deposit
 //     transaction.oldBalance = beforeBalance;
 //     transaction.newBalance = afterBalance;
 //     transaction.receiverAccNumber = receiverAccountNumber;
-//     transaction.transactionTime = time(NULL); // Get current time
+//     transaction.transactionTime = time(NULL); // Record the current time
 
-//     // Write the transaction to the file in binary
-//     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, 0777);
+//     // Open the transaction file for appending
+//     int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
 //     if (transactionFileDescriptor == -1) {
 //         perror("Error opening transaction file");
 //         return -1;
 //     }
 
-//     if (write(transactionFileDescriptor, &transaction, sizeof(struct Transaction)) == -1) {
+//     // Write the transaction record to the file
+//     ssize_t writeBytes = write(transactionFileDescriptor, &transaction, sizeof(struct Transaction));
+//     if (writeBytes == -1 || writeBytes != sizeof(struct Transaction)) {
 //         perror("Error writing transaction to file");
 //         close(transactionFileDescriptor);
 //         return -1;
 //     }
 
-//     close(transactionFileDescriptor);
+//     // Close the file descriptor
+//     if (close(transactionFileDescriptor) == -1) {
+//         perror("Error closing transaction file");
+//         return -1;
+//     }
+
 //     return transaction.transactionID; // Return the transaction ID
 // }
 
+
 int write_transaction_to_file(int accountNumber, long beforeBalance, long afterBalance, int operation, int receiverAccountNumber) {
-    struct Transaction transaction;
+    int transactionFileDescriptor;
+    struct flock lock;
+    struct Transaction lastTransaction;
+    struct Transaction newTransaction;
+    off_t fileSize;
+    ssize_t bytesRead;
 
-    // Generate a unique transaction ID
-    transaction.transactionID = get_new_transaction_id();
-    transaction.accountNumber = accountNumber;
-    transaction.operation = operation; // 0 = Withdraw, 1 = Deposit
-    transaction.oldBalance = beforeBalance;
-    transaction.newBalance = afterBalance;
-    transaction.receiverAccNumber = receiverAccountNumber;
-    transaction.transactionTime = time(NULL); // Record the current time
-
-    // Open the transaction file for appending
-    int transactionFileDescriptor = open(TRANSACTION_FILE, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+    // Open the file for read/write (create if it doesn't exist)
+    transactionFileDescriptor = open(TRANSACTION_FILE, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (transactionFileDescriptor == -1) {
         perror("Error opening transaction file");
         return -1;
     }
 
-    // Write the transaction record to the file
-    ssize_t writeBytes = write(transactionFileDescriptor, &transaction, sizeof(struct Transaction));
-    if (writeBytes == -1 || writeBytes != sizeof(struct Transaction)) {
-        perror("Error writing transaction to file");
+    // Prepare write lock for entire file
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0; // 0 means "lock whole file"
+    lock.l_pid = getpid();
+
+    // Acquire the lock
+    if (fcntl(transactionFileDescriptor, F_SETLKW, &lock) == -1) {
+        perror("Error acquiring write lock on transaction file");
         close(transactionFileDescriptor);
         return -1;
     }
 
-    // Close the file descriptor
-    if (close(transactionFileDescriptor) == -1) {
-        perror("Error closing transaction file");
+    // Find current file size
+    fileSize = lseek(transactionFileDescriptor, 0, SEEK_END);
+    if (fileSize == -1) {
+        perror("Error seeking to end of transaction file");
+        // release lock
+        lock.l_type = F_UNLCK;
+        fcntl(transactionFileDescriptor, F_SETLK, &lock);
+        close(transactionFileDescriptor);
         return -1;
     }
 
-    return transaction.transactionID; // Return the transaction ID
+    int newTransactionID = 1; // default if file is empty
+
+    if (fileSize >= sizeof(struct Transaction)) {
+        // Move to start of last record
+        if (lseek(transactionFileDescriptor, -sizeof(struct Transaction), SEEK_END) == -1) {
+            perror("Error seeking to last transaction record");
+            lock.l_type = F_UNLCK;
+            fcntl(transactionFileDescriptor, F_SETLK, &lock);
+            close(transactionFileDescriptor);
+            return -1;
+        }
+
+        // Read last transaction
+        bytesRead = read(transactionFileDescriptor, &lastTransaction, sizeof(struct Transaction));
+        if (bytesRead == -1) {
+            perror("Error reading last transaction record");
+            lock.l_type = F_UNLCK;
+            fcntl(transactionFileDescriptor, F_SETLK, &lock);
+            close(transactionFileDescriptor);
+            return -1;
+        } else if (bytesRead == sizeof(struct Transaction)) {
+            newTransactionID = lastTransaction.transactionID + 1;
+        }
+    }
+
+    // Prepare new transaction record
+    newTransaction.transactionID = newTransactionID;
+    newTransaction.accountNumber = accountNumber;
+    newTransaction.operation = operation;
+    newTransaction.oldBalance = beforeBalance;
+    newTransaction.newBalance = afterBalance;
+    newTransaction.receiverAccNumber = receiverAccountNumber;
+    newTransaction.transactionTime = time(NULL);
+
+    // Seek to EOF before writing
+    if (lseek(transactionFileDescriptor, 0, SEEK_END) == -1) {
+        perror("Error seeking to end of transaction file for writing");
+        lock.l_type = F_UNLCK;
+        fcntl(transactionFileDescriptor, F_SETLK, &lock);
+        close(transactionFileDescriptor);
+        return -1;
+    }
+
+    // Write new transaction
+    ssize_t writeBytes = write(transactionFileDescriptor, &newTransaction, sizeof(struct Transaction));
+    if (writeBytes == -1 || writeBytes != sizeof(struct Transaction)) {
+        perror("Error writing new transaction to file");
+        lock.l_type = F_UNLCK;
+        fcntl(transactionFileDescriptor, F_SETLK, &lock);
+        close(transactionFileDescriptor);
+        return -1;
+    }
+
+    // Unlock the file
+    lock.l_type = F_UNLCK;
+    if (fcntl(transactionFileDescriptor, F_SETLK, &lock) == -1) {
+        perror("Error releasing lock on transaction file");
+    }
+
+    close(transactionFileDescriptor);
+
+    return newTransactionID;
 }
 
 

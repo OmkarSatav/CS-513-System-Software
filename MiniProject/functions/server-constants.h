@@ -97,7 +97,7 @@
 
 // LOGIN WELCOME
 #define CUSTOMER_LOGIN_WELCOME "🌟 Welcome dear customer! Enter your credentials to gain access to your account!"
-#define CUSTOMER_LOGIN_SUCCESS "✅ Welcome beloved customer!"
+#define CUSTOMER_LOGIN_SUCCESS "✅ Welcome beloved customer!^"
 #define CUSTOMER_LOGIN_ID_DOESNT_EXIST "❌ The customer login ID doesn't exist.\n^"
 #define CUSTOMER_LOGOUT "👋 Logging you out now, dear customer! Goodbye!$"
 
@@ -124,14 +124,14 @@
 
 #define DEPOSIT_AMOUNT "💵 How much do you want to add to your bank? "
 #define DEPOSIT_AMOUNT_INVALID "❌ You seem to have entered an invalid amount!^"
-#define DEPOSIT_AMOUNT_SUCCESS "✅ The specified amount has been successfully added to your bank account! type ok "
+#define DEPOSIT_AMOUNT_SUCCESS "✅ The specified amount has been successfully added to your bank account!^"
 
 #define WITHDRAW_AMOUNT "💸 How much do you want to withdraw from your bank? "
 #define WITHDRAW_AMOUNT_INVALID "❌ You seem to have either entered an invalid amount or you don't have enough money in your bank to withdraw the specified amount.^"
-#define WITHDRAW_AMOUNT_SUCCESS "✅ The specified amount has been successfully withdrawn from your bank account! type ok " 
+#define WITHDRAW_AMOUNT_SUCCESS "✅ The specified amount has been successfully withdrawn from your bank account!^" 
 
 #define PASSWORD_CHANGE_OLD_PASS "🔒 Enter your old password: "
-#define PASSWORD_CHANGE_OLD_PASS_INVALID "❌ The entered password doesn't seem to match the old password."
+#define PASSWORD_CHANGE_OLD_PASS_INVALID "❌ The entered password doesn't seem to match the old password.^"
 #define PASSWORD_CHANGE_NEW_PASS "🔑 Enter the new password: "
 #define PASSWORD_CHANGE_NEW_PASS_RE "🔑 Reenter the new password: "
 #define PASSWORD_CHANGE_NEW_PASS_INVALID "❌ The new password and the reentered passwords don't seem to match!^"
