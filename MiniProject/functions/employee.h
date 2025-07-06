@@ -11,7 +11,7 @@
 #include "../recordtypes/loan.h"
 
 struct Employee loggedInEmployee;
-int semIdentifier;
+
 
 
 // Function Prototypes =================================
@@ -243,30 +243,42 @@ void send_loans_assigned_to_employee(int connFD) {
     while ((readBytes = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
         if (loan.status == 1 && loan.empID == employeeID) { // Check if loan is assigned to this employee
             // Prepare loan detail message
-            snprintf(buffer, sizeof(buffer), "Loan ID: %d, Account ID: %d, Amount: %d\n",
+            snprintf(buffer, sizeof(buffer), "Loan ID: %d, Account ID: %d, Amount: %d\n^",
                      loan.loanID, loan.custID, loan.amount);
             if (write(connFD, buffer, strlen(buffer)) == -1) {
                 perror("Error sending loan details to client");
                 close(loanFileDescriptor);
                 return;
             }
+            bzero(buffer, sizeof(buffer));
+            read(connFD, buffer, sizeof(buffer));
             count++;
         }
-        bzero(buffer, sizeof(buffer)); // Clear the buffer after each use
+        bzero(buffer, sizeof(buffer));                      // Clear the buffer after each use
     }
 
     if (readBytes == -1) {
         perror("Error reading loan records");
-        write(connFD, "Error reading loan records.\n", 28);
+        sprintf(buffer, "Error reading loan records.\n^");
+        write(connFD, buffer, strlen(buffer));
+        bzero(buffer, sizeof(buffer));
+        read(connFD, buffer, sizeof(buffer));
         close(loanFileDescriptor);
         return;
     }
 
     if (count == 0) {
-        write(connFD, "No loans assigned to you.\n", 26);
-    } else {
-        snprintf(buffer, sizeof(buffer), "Total loans assigned to you: %d\n", count);
+        sprintf(buffer, "No loans assigned to you.\n^");
         write(connFD, buffer, strlen(buffer));
+        bzero(buffer, sizeof(buffer));
+        read(connFD, buffer, sizeof(buffer));
+        close(loanFileDescriptor);
+    } else {
+        snprintf(buffer, sizeof(buffer), "Total loans assigned to you: %d\n^", count);
+        write(connFD, buffer, strlen(buffer));
+        bzero(buffer, sizeof(buffer));
+        read(connFD, buffer, sizeof(buffer));
+        close(loanFileDescriptor);
     }
 
     close(loanFileDescriptor); // Close the file descriptor
@@ -274,15 +286,29 @@ void send_loans_assigned_to_employee(int connFD) {
 
 
 
+
+
 // bool approve_or_reject_loan(int connFD) {
+//     char readBuffer[1000], writeBuffer[1000];
+//     ssize_t readBytes, writeBytes;
+
 //     // Prompt for the loan ID
 //     const char *promptMessage = "Please enter the Loan ID to approve or reject: ";
-//     write(connFD, promptMessage, strlen(promptMessage));
+//     writeBytes = write(connFD, promptMessage, strlen(promptMessage));
+//     if (writeBytes == -1) {
+//         perror("Error sending loan ID prompt to client");
+//         return false;
+//     }
 
-//     char readBuffer[100];
-//     ssize_t readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+//     // Read the loan ID from the client
+//     bzero(readBuffer, sizeof(readBuffer));
+//     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
 //     if (readBytes <= 0) {
-//         perror("Error reading loan ID from client");
+//         if (readBytes == 0) {
+//             printf("Client disconnected while entering loan ID.\n");
+//         } else {
+//             perror("Error reading loan ID from client");
+//         }
 //         return false;
 //     }
 //     readBuffer[readBytes] = '\0'; // Null-terminate the string
@@ -292,8 +318,10 @@ void send_loans_assigned_to_employee(int connFD) {
 //     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDWR);
 //     if (loanFileDescriptor == -1) {
 //         perror("Error opening loan records file");
-//         const char *errorMessage = "Unable to access loan records.\n";
-//         write(connFD, errorMessage, strlen(errorMessage));
+//         sprintf(writeBuffer, "Unable to access loan records.\n^");
+//         write(connFD, writeBuffer, strlen(writeBuffer));
+//         bzero(readBuffer, sizeof(readBuffer));
+//         read(connFD, readBuffer, sizeof(readBuffer));
 //         return false;
 //     }
 
@@ -308,13 +336,22 @@ void send_loans_assigned_to_employee(int connFD) {
 
 //             // Prompt employee for approval or rejection
 //             const char *approvalPrompt = "Do you want to approve or reject the loan? (a for approve, r for reject): ";
-//             write(connFD, approvalPrompt, strlen(approvalPrompt));
+//             writeBytes = write(connFD, approvalPrompt, strlen(approvalPrompt));
+//             if (writeBytes == -1) {
+//                 perror("Error sending approval prompt to client");
+//                 close(loanFileDescriptor);
+//                 return false;
+//             }
 
 //             // Read the employee's decision
 //             bzero(readBuffer, sizeof(readBuffer));
 //             readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
 //             if (readBytes <= 0) {
-//                 perror("Error reading employee decision from client");
+//                 if (readBytes == 0) {
+//                     printf("Client disconnected while entering decision.\n");
+//                 } else {
+//                     perror("Error reading employee decision from client");
+//                 }
 //                 close(loanFileDescriptor);
 //                 return false;
 //             }
@@ -322,12 +359,14 @@ void send_loans_assigned_to_employee(int connFD) {
 
 //             // Update the loan status based on employee's decision
 //             if (readBuffer[0] == 'a') {
-//                 loan.status = 2; // Approved
+//                 loan.status = 3; // Approved
 //             } else if (readBuffer[0] == 'r') {
-//                 loan.status = 3; // Rejected
+//                 loan.status = 2; // Rejected
 //             } else {
-//                 const char *invalidInput = "Invalid input! Please enter 'a' to approve or 'r' to reject.\n";
+//                 const char *invalidInput = "Invalid input! Please enter 'a' to approve or 'r' to reject.\n^";
 //                 write(connFD, invalidInput, strlen(invalidInput));
+//                 bzero(readBuffer, sizeof(readBuffer));
+//                 read(connFD, readBuffer, sizeof(readBuffer));
 //                 close(loanFileDescriptor);
 //                 return false;
 //             }
@@ -366,12 +405,12 @@ void send_loans_assigned_to_employee(int connFD) {
 // }
 
 bool approve_or_reject_loan(int connFD) {
-    char readBuffer[1000];
+    char readBuffer[1000], writeBuffer[1000];
     ssize_t readBytes, writeBytes;
 
     // Prompt for the loan ID
-    const char *promptMessage = "Please enter the Loan ID to approve or reject: ";
-    writeBytes = write(connFD, promptMessage, strlen(promptMessage));
+    sprintf(writeBuffer, "Please enter the Loan ID to approve or reject: ");
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1) {
         perror("Error sending loan ID prompt to client");
         return false;
@@ -381,100 +420,129 @@ bool approve_or_reject_loan(int connFD) {
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
-        if (readBytes == 0) {
-            printf("Client disconnected while entering loan ID.\n");
-        } else {
-            perror("Error reading loan ID from client");
-        }
+        perror("Error reading loan ID from client");
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the string
-    int loanID = atoi(readBuffer); // Convert to integer
+    readBuffer[readBytes] = '\0';
+    int loanID = atoi(readBuffer);
 
-    // Open the loan records file for reading and writing
+    // Open the loan records file
     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDWR);
     if (loanFileDescriptor == -1) {
         perror("Error opening loan records file");
-        write(connFD, "Unable to access loan records.\n", 31);
+        sprintf(writeBuffer, "Unable to access loan records.\n^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));  // Dummy read
         return false;
     }
 
     struct Loan loan;
     ssize_t bytesRead;
     bool loanFound = false;
+    off_t position = 0;
 
-    // Read through the loan records
     while ((bytesRead = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
         if (loan.loanID == loanID && loan.status == 1 && loan.empID == loggedInEmployee.id) {
-            loanFound = true; // Loan found and assigned to the employee
-
-            // Prompt employee for approval or rejection
-            const char *approvalPrompt = "Do you want to approve or reject the loan? (a for approve, r for reject): ";
-            writeBytes = write(connFD, approvalPrompt, strlen(approvalPrompt));
-            if (writeBytes == -1) {
-                perror("Error sending approval prompt to client");
-                close(loanFileDescriptor);
-                return false;
-            }
-
-            // Read the employee's decision
-            bzero(readBuffer, sizeof(readBuffer));
-            readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
-            if (readBytes <= 0) {
-                if (readBytes == 0) {
-                    printf("Client disconnected while entering decision.\n");
-                } else {
-                    perror("Error reading employee decision from client");
-                }
-                close(loanFileDescriptor);
-                return false;
-            }
-            readBuffer[readBytes] = '\0'; // Null-terminate the string
-
-            // Update the loan status based on employee's decision
-            if (readBuffer[0] == 'a') {
-                loan.status = 3; // Approved
-            } else if (readBuffer[0] == 'r') {
-                loan.status = 2; // Rejected
-            } else {
-                const char *invalidInput = "Invalid input! Please enter 'a' to approve or 'r' to reject.\n";
-                write(connFD, invalidInput, strlen(invalidInput));
-                close(loanFileDescriptor);
-                return false;
-            }
-
-            // Move the file pointer back to the correct position to overwrite the loan record
-            off_t offset = lseek(loanFileDescriptor, -sizeof(struct Loan), SEEK_CUR);
-            if (offset == -1) {
-                perror("Error seeking in loan records file");
-                close(loanFileDescriptor);
-                return false;
-            }
-
-            // Write the updated loan record back to the file
-            if (write(loanFileDescriptor, &loan, sizeof(struct Loan)) == -1) {
-                perror("Error updating loan record in file");
-                close(loanFileDescriptor);
-                return false;
-            }
-
-            // Confirmation message
-            const char *successMessage = "Loan application status updated successfully.\n";
-            write(connFD, successMessage, strlen(successMessage));
-            break; // Exit the loop after processing the loan
+            loanFound = true;
+            break;
         }
+        position += sizeof(struct Loan);  // Track position for lock
     }
 
-    // If the loan was not found
     if (!loanFound) {
-        const char *notFoundMessage = "Loan not found or not assigned to you.\n";
-        write(connFD, notFoundMessage, strlen(notFoundMessage));
+        sprintf(writeBuffer, "Loan not found or not assigned to you.\n");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        close(loanFileDescriptor);
+        return false;
     }
 
-    // Close the file descriptor
+    // Lock the specific loan record (write lock)
+    struct flock lock;
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = position;
+    lock.l_len = sizeof(struct Loan);
+    lock.l_pid = getpid();
+
+    if (fcntl(loanFileDescriptor, F_SETLKW, &lock) == -1) {
+        perror("Error locking loan record");
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Seek back and re-read the locked record
+    if (lseek(loanFileDescriptor, position, SEEK_SET) == -1 ||
+        read(loanFileDescriptor, &loan, sizeof(struct Loan)) != sizeof(struct Loan)) {
+        perror("Error re-reading loan after locking");
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Prompt for approval/rejection
+    sprintf(writeBuffer, "Do you want to approve or reject the loan? (a for approve, r for reject): ");
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
+    if (writeBytes == -1) {
+        perror("Error sending approval prompt");
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Read employee decision
+    bzero(readBuffer, sizeof(readBuffer));
+    readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
+    if (readBytes <= 0) {
+        perror("Error reading decision from client");
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+        close(loanFileDescriptor);
+        return false;
+    }
+    readBuffer[readBytes] = '\0';
+
+    if (readBuffer[0] == 'a') {
+        loan.status = 3;
+    } else if (readBuffer[0] == 'r') {
+        loan.status = 2;
+    } else {
+        sprintf(writeBuffer, "Invalid input! Please enter 'a' to approve or 'r' to reject.\n^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));  // Dummy read
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Seek back and write the updated record
+    if (lseek(loanFileDescriptor, position, SEEK_SET) == -1 ||
+        write(loanFileDescriptor, &loan, sizeof(struct Loan)) != sizeof(struct Loan)) {
+        perror("Error writing updated loan record");
+        lock.l_type = F_UNLCK;
+        fcntl(loanFileDescriptor, F_SETLK, &lock);
+        close(loanFileDescriptor);
+        return false;
+    }
+
+    // Unlock
+    lock.l_type = F_UNLCK;
+    fcntl(loanFileDescriptor, F_SETLK, &lock);
+
+    // Confirmation message
+    sprintf(writeBuffer, "Loan application status updated successfully.\n^");
+    write(connFD, writeBuffer, strlen(writeBuffer));
+    bzero(readBuffer, sizeof(readBuffer));
+    read(connFD, readBuffer, sizeof(readBuffer));  // Dummy read
+
     close(loanFileDescriptor);
     return true;
 }
+
 
 
 
@@ -485,58 +553,61 @@ bool approve_or_reject_loan(int connFD) {
 //     ssize_t readBytes, writeBytes;
 
 //     // Prompt the employee for the loan ID to check the status
-//     const char *promptMessage = "Please enter the loan ID to check the status: ";
+//     const char *promptMessage = "Please enter the Loan ID to check the status: ";
 //     writeBytes = write(connFD, promptMessage, strlen(promptMessage));
 //     if (writeBytes == -1) {
-//         perror("Error sending prompt to client");
+//         perror("Error sending loan ID prompt to client");
 //         return;
 //     }
 
 //     // Read the loan ID from the employee
 //     bzero(readBuffer, sizeof(readBuffer));
 //     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
-//     if (readBytes == -1) {
-//         perror("Error reading loan ID from client");
+//     if (readBytes <= 0) {
+//         if (readBytes == 0) {
+//             printf("Client disconnected while entering loan ID.\n");
+//         } else {
+//             perror("Error reading loan ID from client");
+//         }
 //         return;
 //     }
-//     readBuffer[readBytes] = '\0'; // Ensure null-termination
+//     readBuffer[readBytes] = '\0'; // Null-terminate the input
 //     int loanID = atoi(readBuffer); // Convert loan ID to integer
 
 //     // Open the loans file for reading
 //     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
 //     if (loanFileDescriptor == -1) {
 //         perror("Error opening loan records file");
-//         const char *errorMessage = "Unable to access loan records.\n";
-//         write(connFD, errorMessage, strlen(errorMessage));
+//         write(connFD, "Unable to access loan records.\n", 31);
 //         return;
 //     }
 
 //     struct Loan loan;
-//     ssize_t readBytesLoan;
+//     ssize_t bytesRead;
 //     bool loanFound = false;
 
 //     // Read through the loan records to find the loan with the specified loanID
-//     while ((readBytesLoan = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
+//     while ((bytesRead = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
 //         if (loan.loanID == loanID) {
 //             loanFound = true;
 
 //             // Prepare a message based on the loan status
-//             const char *statusMessage;
+//             char statusMessage[200];
 //             switch (loan.status) {
 //                 case 0:
-//                     statusMessage = "Loan Status: Request applied but no assignment by management.\n";
+//                     snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d is assigned to a manager for review.\n", loan.loanID);
 //                     break;
 //                 case 1:
-//                     statusMessage = "Loan Status: Assigned by manager to employee, pending action.\n";
+//                     snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d is assigned to an employee for processing.\n", loan.loanID);
 //                     break;
 //                 case 2:
-//                     statusMessage = "Loan Status: Accepted by employee.\n";
+//                     snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has been rejected.\n", loan.loanID);
 //                     break;
 //                 case 3:
-//                     statusMessage = "Loan Status: Rejected by employee.\n";
+//                     snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has been approved.\n", loan.loanID);
 //                     break;
 //                 default:
-//                     statusMessage = "Loan Status: Unknown status.\n";
+//                     snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has an unknown status.\n", loan.loanID);
 //                     break;
 //             }
 
@@ -544,9 +615,14 @@ bool approve_or_reject_loan(int connFD) {
 //             writeBytes = write(connFD, statusMessage, strlen(statusMessage));
 //             if (writeBytes == -1) {
 //                 perror("Error sending loan status to client");
-//                 break;
 //             }
+//             break;
 //         }
+//     }
+
+//     if (bytesRead == -1) {
+//         perror("Error reading loan records");
+//         write(connFD, "Error reading loan records.\n", 28);
 //     }
 
 //     if (!loanFound) {
@@ -558,101 +634,128 @@ bool approve_or_reject_loan(int connFD) {
 //     close(loanFileDescriptor);
 // }
 
-
-
 void check_loan_status(int connFD) {
-    char readBuffer[500];
+    char readBuffer[500], writeBuffer[1000];
     ssize_t readBytes, writeBytes;
 
-    // Prompt the employee for the loan ID to check the status
-    const char *promptMessage = "Please enter the Loan ID to check the status: ";
-    writeBytes = write(connFD, promptMessage, strlen(promptMessage));
+    // Prompt for Loan ID
+    sprintf(writeBuffer, "Please enter the Loan ID to check the status: ");
+    writeBytes = write(connFD, writeBuffer, strlen(writeBuffer));
     if (writeBytes == -1) {
         perror("Error sending loan ID prompt to client");
         return;
     }
 
-    // Read the loan ID from the employee
+    // Read the loan ID
     bzero(readBuffer, sizeof(readBuffer));
     readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1);
     if (readBytes <= 0) {
-        if (readBytes == 0) {
-            printf("Client disconnected while entering loan ID.\n");
-        } else {
-            perror("Error reading loan ID from client");
-        }
+        perror("Error reading loan ID from client");
         return;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the input
-    int loanID = atoi(readBuffer); // Convert loan ID to integer
+    readBuffer[readBytes] = '\0';
+    int loanID = atoi(readBuffer);
 
-    // Open the loans file for reading
+    // Open file
     int loanFileDescriptor = open(LOAN_RECORD_FILE, O_RDONLY);
     if (loanFileDescriptor == -1) {
         perror("Error opening loan records file");
-        write(connFD, "Unable to access loan records.\n", 31);
+        sprintf(writeBuffer, "Unable to access loan records.\n^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
         return;
     }
 
     struct Loan loan;
     ssize_t bytesRead;
     bool loanFound = false;
+    off_t position = 0;
 
-    // Read through the loan records to find the loan with the specified loanID
     while ((bytesRead = read(loanFileDescriptor, &loan, sizeof(struct Loan))) > 0) {
         if (loan.loanID == loanID) {
             loanFound = true;
 
-            // Prepare a message based on the loan status
-            char statusMessage[200];
+            // Lock this loan record for reading
+            struct flock lock;
+            lock.l_type = F_RDLCK;
+            lock.l_whence = SEEK_SET;
+            lock.l_start = position;
+            lock.l_len = sizeof(struct Loan);
+            lock.l_pid = getpid();
+
+            if (fcntl(loanFileDescriptor, F_SETLKW, &lock) == -1) {
+                perror("Error locking loan record for reading");
+                sprintf(writeBuffer, "Could not lock record.\n^");
+                write(connFD, writeBuffer, strlen(writeBuffer));
+                read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+                close(loanFileDescriptor);
+                return;
+            }
+
+            // Seek and re-read the locked record
+            if (lseek(loanFileDescriptor, position, SEEK_SET) == -1 ||
+                read(loanFileDescriptor, &loan, sizeof(struct Loan)) != sizeof(struct Loan)) {
+                perror("Error re-reading locked loan record");
+                sprintf(writeBuffer, "Could not read locked loan.\n^");
+                write(connFD, writeBuffer, strlen(writeBuffer));
+                read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+                lock.l_type = F_UNLCK;
+                fcntl(loanFileDescriptor, F_SETLK, &lock);
+                close(loanFileDescriptor);
+                return;
+            }
+
+            // Prepare status message
             switch (loan.status) {
                 case 0:
-                    snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d is assigned to a manager for review.\n", loan.loanID);
+                    sprintf(writeBuffer, "Loan ID: %d is assigned to a manager for review.\n^", loan.loanID);
                     break;
                 case 1:
-                    snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d is assigned to an employee for processing.\n", loan.loanID);
+                    sprintf(writeBuffer, "Loan ID: %d is assigned to an employee for processing.\n^", loan.loanID);
                     break;
                 case 2:
-                    snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has been rejected.\n", loan.loanID);
+                    sprintf(writeBuffer, "Loan ID: %d has been rejected.\n^", loan.loanID);
                     break;
                 case 3:
-                    snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has been approved.\n", loan.loanID);
+                    sprintf(writeBuffer, "Loan ID: %d has been approved.\n^", loan.loanID);
                     break;
                 default:
-                    snprintf(statusMessage, sizeof(statusMessage), "Loan ID: %d has an unknown status.\n", loan.loanID);
+                    sprintf(writeBuffer, "Loan ID: %d has an unknown status.\n^", loan.loanID);
                     break;
             }
 
-            // Send the status message to the employee
-            writeBytes = write(connFD, statusMessage, strlen(statusMessage));
-            if (writeBytes == -1) {
-                perror("Error sending loan status to client");
-            }
+            // Send message and wait for dummy read
+            write(connFD, writeBuffer, strlen(writeBuffer));
+            bzero(readBuffer, sizeof(readBuffer));
+            read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+
+            // Unlock the record
+            lock.l_type = F_UNLCK;
+            fcntl(loanFileDescriptor, F_SETLK, &lock);
             break;
         }
+
+        position += sizeof(struct Loan);
     }
 
     if (bytesRead == -1) {
         perror("Error reading loan records");
-        write(connFD, "Error reading loan records.\n", 28);
+        sprintf(writeBuffer, "Error reading loan records.\n^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     }
 
     if (!loanFound) {
-        const char *notFoundMessage = "Loan not found.\n";
-        write(connFD, notFoundMessage, strlen(notFoundMessage));
+        sprintf(writeBuffer, "Loan not found.\n^");
+        write(connFD, writeBuffer, strlen(writeBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
     }
 
-    // Close the loan file descriptor
     close(loanFileDescriptor);
 }
 
 
-
-
-void unlock_employee_critical_section(struct sembuf *semOp) {
-    semOp->sem_op = 1; // Unlock operation
-    semop(semIdentifier, semOp, 1);
-}
 
 
 
@@ -662,253 +765,296 @@ void unlock_employee_critical_section(struct sembuf *semOp) {
 
 //     // Lock the critical section
 //     struct sembuf semOp = {0, -1, SEM_UNDO};
-//     int semopStatus = semop(semIdentifier, &semOp, 1);
-//     if (semopStatus == -1) {
+//     if (semop(semIdentifier, &semOp, 1) == -1) {
 //         perror("Error while locking critical section");
 //         return false;
 //     }
 
 //     // Prompt for old password
-//     writeBytes = write(connFD, PASSWORD_CHANGE_OLD_PASS, strlen(PASSWORD_CHANGE_OLD_PASS));
-//     if (writeBytes == -1) {
-//         perror("Error writing PASSWORD_CHANGE_OLD_PASS message to client!");
+//     if (write(connFD, PASSWORD_CHANGE_OLD_PASS, strlen(PASSWORD_CHANGE_OLD_PASS)) == -1) {
+//         perror("Error writing old password prompt to client");
 //         unlock_employee_critical_section(&semOp);
 //         return false;
 //     }
 
+//     // Read old password
 //     bzero(readBuffer, sizeof(readBuffer));
-//     readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-//     if (readBytes == -1) {
-//         perror("Error reading old password response from client");
+//     if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+//         perror("Error reading old password from client");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+//     readBuffer[readBytes] = '\0'; // Null-terminate the input
+
+//     // Validate old password
+//     if (strcmp(readBuffer, loggedInEmployee.password) != 0) {
+//         write(connFD, PASSWORD_CHANGE_OLD_PASS_INVALID, strlen(PASSWORD_CHANGE_OLD_PASS_INVALID));
 //         unlock_employee_critical_section(&semOp);
 //         return false;
 //     }
 
-//     if (strcmp(readBuffer, loggedInManager.password) == 0) { // Check if old password matches
-//         // Prompt for new password
-//         writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS));
-//         if (writeBytes == -1) {
-//             perror("Error writing PASSWORD_CHANGE_NEW_PASS message to client!");
-//             unlock_employee_critical_section(&semOp);
-//             return false;
-//         }
-        
-//         bzero(readBuffer, sizeof(readBuffer));
-//         readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-//         if (readBytes == -1) {
-//             perror("Error reading new password response from client");
-//             unlock_employee_critical_section(&semOp);
-//             return false;
-//         }
-
-//         strcpy(newPassword, readBuffer); // Store new password
-
-//         // Prompt for re-entering new password
-//         writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE));
-//         if (writeBytes == -1) {
-//             perror("Error writing PASSWORD_CHANGE_NEW_PASS_RE message to client!");
-//             unlock_employee_critical_section(&semOp);
-//             return false;
-//         }
-
-//         bzero(readBuffer, sizeof(readBuffer));
-//         readBytes = read(connFD, readBuffer, sizeof(readBuffer));
-//         if (readBytes == -1) {
-//             perror("Error reading new password re-enter response from client");
-//             unlock_employee_critical_section(&semOp);
-//             return false;
-//         }
-
-//         if (strcmp(readBuffer, newPassword) == 0) { // Check if new and re-entered passwords match
-//             // Update password
-//             strcpy(loggedInManager.password, newPassword); 
-
-//             // Open employee data file to update the record
-//             int employeeFileDescriptor = open(EMPLOYEE_FILE, O_WRONLY);
-//             if (employeeFileDescriptor == -1) {
-//                 perror("Error opening employee file!");
-//                 unlock_employee_critical_section(&semOp);
-//                 return false;
-//             }
-
-//             off_t offset = lseek(employeeFileDescriptor, loggedInManager.id * sizeof(struct Employee), SEEK_SET);
-//             if (offset == -1) {
-//                 perror("Error seeking to the employee record!");
-//                 close(employeeFileDescriptor);
-//                 unlock_employee_critical_section(&semOp);
-//                 return false;
-//             }
-
-//             struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
-//             int lockingStatus = fcntl(employeeFileDescriptor, F_SETLKW, &lock);
-//             if (lockingStatus == -1) {
-//                 perror("Error obtaining write lock on employee record!");
-//                 close(employeeFileDescriptor);
-//                 unlock_employee_critical_section(&semOp);
-//                 return false;
-//             }
-
-//             // Write the updated employee record
-//             writeBytes = write(employeeFileDescriptor, &loggedInManager, sizeof(struct Employee));
-//             if (writeBytes == -1) {
-//                 perror("Error storing updated employee password into employee record!");
-//                 lock.l_type = F_UNLCK; // Unlock record
-//                 fcntl(employeeFileDescriptor, F_SETLK, &lock);
-//                 close(employeeFileDescriptor);
-//                 unlock_employee_critical_section(&semOp);
-//                 return false;
-//             }
-
-//             lock.l_type = F_UNLCK; // Unlock record
-//             fcntl(employeeFileDescriptor, F_SETLK, &lock);
-//             close(employeeFileDescriptor);
-
-//             writeBytes = write(connFD, PASSWORD_CHANGE_SUCCESS, strlen(PASSWORD_CHANGE_SUCCESS));
-//             readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-
-//             unlock_employee_critical_section(&semOp);
-//             return true;
-//         } else {
-//             // New passwords don't match
-//             writeBytes = write(connFD, PASSWORD_CHANGE_NEW_PASS_INVALID, strlen(PASSWORD_CHANGE_NEW_PASS_INVALID));
-//             readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
-//         }
-//     } else {
-//         // Old password is incorrect
-//         writeBytes = write(connFD, PASSWORD_CHANGE_OLD_PASS_INVALID, strlen(PASSWORD_CHANGE_OLD_PASS_INVALID));
-//         readBytes = read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
+//     // Prompt for new password
+//     if (write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS)) == -1) {
+//         perror("Error writing new password prompt to client");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
 //     }
+
+//     // Read new password
+//     bzero(readBuffer, sizeof(readBuffer));
+//     if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+//         perror("Error reading new password from client");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+//     readBuffer[readBytes] = '\0'; // Null-terminate the input
+//     strcpy(newPassword, readBuffer);
+
+//     // Prompt for re-entering new password
+//     if (write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE)) == -1) {
+//         perror("Error writing re-enter password prompt to client");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Read re-entered password
+//     bzero(readBuffer, sizeof(readBuffer));
+//     if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+//         perror("Error reading re-entered password from client");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+//     readBuffer[readBytes] = '\0'; // Null-terminate the input
+
+//     // Validate new passwords match
+//     if (strcmp(readBuffer, newPassword) != 0) {
+//         write(connFD, PASSWORD_CHANGE_NEW_PASS_INVALID, strlen(PASSWORD_CHANGE_NEW_PASS_INVALID));
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Update password in memory
+//     strcpy(loggedInEmployee.password, newPassword);
+
+//     // Open employee file to update the record
+//     int employeeFileDescriptor = open(EMPLOYEE_FILE, O_WRONLY);
+//     if (employeeFileDescriptor == -1) {
+//         perror("Error opening employee file");
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Seek to the employee record
+//     off_t offset = lseek(employeeFileDescriptor, loggedInEmployee.id * sizeof(struct Employee), SEEK_SET);
+//     if (offset == -1) {
+//         perror("Error seeking to employee record");
+//         close(employeeFileDescriptor);
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Lock the employee record
+//     struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
+//     if (fcntl(employeeFileDescriptor, F_SETLKW, &lock) == -1) {
+//         perror("Error obtaining write lock on employee record");
+//         close(employeeFileDescriptor);
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Write updated employee record
+//     if (write(employeeFileDescriptor, &loggedInEmployee, sizeof(struct Employee)) == -1) {
+//         perror("Error writing updated employee record");
+//         lock.l_type = F_UNLCK;
+//         fcntl(employeeFileDescriptor, F_SETLK, &lock);
+//         close(employeeFileDescriptor);
+//         unlock_employee_critical_section(&semOp);
+//         return false;
+//     }
+
+//     // Unlock the record and close the file
+//     lock.l_type = F_UNLCK;
+//     fcntl(employeeFileDescriptor, F_SETLK, &lock);
+//     close(employeeFileDescriptor);
+
+//     // Notify the client of success
+//     write(connFD, PASSWORD_CHANGE_SUCCESS, strlen(PASSWORD_CHANGE_SUCCESS));
+//     read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read for acknowledgment
 
 //     unlock_employee_critical_section(&semOp);
-//     return false;
+//     return true;
 // }
 
 
 bool change_employee_password(int connFD) {
-    ssize_t readBytes, writeBytes;
+    ssize_t readBytes;
     char readBuffer[1000], newPassword[1000];
+    int employeeFileDescriptor;
+    struct flock lock;
+    off_t offset;
 
-    // Lock the critical section
-    struct sembuf semOp = {0, -1, SEM_UNDO};
-    if (semop(semIdentifier, &semOp, 1) == -1) {
-        perror("Error while locking critical section");
+    // Open the employee file for reading and writing
+    employeeFileDescriptor = open(EMPLOYEE_FILE, O_RDWR);
+    if (employeeFileDescriptor == -1) {
+        perror("Error opening employee file");
+        return false;
+    }
+
+    // Compute the offset for this employee
+    offset = loggedInEmployee.id * sizeof(struct Employee);
+
+    // Prepare a write lock on this employee record
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = offset;
+    lock.l_len = sizeof(struct Employee);
+    lock.l_pid = getpid();
+
+    // Lock the employee record exclusively
+    if (fcntl(employeeFileDescriptor, F_SETLKW, &lock) == -1) {
+        perror("Error obtaining write lock on employee record");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    // Seek to the employee record
+    if (lseek(employeeFileDescriptor, offset, SEEK_SET) == -1) {
+        perror("Error seeking to employee record");
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
+        return false;
+    }
+
+    // Read the current employee record from file
+    if (read(employeeFileDescriptor, &loggedInEmployee, sizeof(struct Employee)) != sizeof(struct Employee)) {
+        perror("Error reading employee record from file");
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
     // Prompt for old password
     if (write(connFD, PASSWORD_CHANGE_OLD_PASS, strlen(PASSWORD_CHANGE_OLD_PASS)) == -1) {
         perror("Error writing old password prompt to client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
     // Read old password
     bzero(readBuffer, sizeof(readBuffer));
-    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1)) <= 0) {
         perror("Error reading old password from client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the input
+    readBuffer[readBytes] = '\0';
 
     // Validate old password
     if (strcmp(readBuffer, loggedInEmployee.password) != 0) {
         write(connFD, PASSWORD_CHANGE_OLD_PASS_INVALID, strlen(PASSWORD_CHANGE_OLD_PASS_INVALID));
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
     // Prompt for new password
     if (write(connFD, PASSWORD_CHANGE_NEW_PASS, strlen(PASSWORD_CHANGE_NEW_PASS)) == -1) {
         perror("Error writing new password prompt to client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
     // Read new password
     bzero(readBuffer, sizeof(readBuffer));
-    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1)) <= 0) {
         perror("Error reading new password from client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the input
+    readBuffer[readBytes] = '\0';
     strcpy(newPassword, readBuffer);
 
     // Prompt for re-entering new password
     if (write(connFD, PASSWORD_CHANGE_NEW_PASS_RE, strlen(PASSWORD_CHANGE_NEW_PASS_RE)) == -1) {
         perror("Error writing re-enter password prompt to client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
     // Read re-entered password
     bzero(readBuffer, sizeof(readBuffer));
-    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer))) <= 0) {
+    if ((readBytes = read(connFD, readBuffer, sizeof(readBuffer) - 1)) <= 0) {
         perror("Error reading re-entered password from client");
-        unlock_employee_critical_section(&semOp);
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
-    readBuffer[readBytes] = '\0'; // Null-terminate the input
+    readBuffer[readBytes] = '\0';
 
-    // Validate new passwords match
+    // Validate that new passwords match
     if (strcmp(readBuffer, newPassword) != 0) {
         write(connFD, PASSWORD_CHANGE_NEW_PASS_INVALID, strlen(PASSWORD_CHANGE_NEW_PASS_INVALID));
-        unlock_employee_critical_section(&semOp);
+        bzero(readBuffer, sizeof(readBuffer));
+        read(connFD, readBuffer, sizeof(readBuffer));
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
+        close(employeeFileDescriptor);
         return false;
     }
 
-    // Update password in memory
+    // Update the employee password in memory
     strcpy(loggedInEmployee.password, newPassword);
 
-    // Open employee file to update the record
-    int employeeFileDescriptor = open(EMPLOYEE_FILE, O_WRONLY);
-    if (employeeFileDescriptor == -1) {
-        perror("Error opening employee file");
-        unlock_employee_critical_section(&semOp);
-        return false;
-    }
-
-    // Seek to the employee record
-    off_t offset = lseek(employeeFileDescriptor, loggedInEmployee.id * sizeof(struct Employee), SEEK_SET);
-    if (offset == -1) {
-        perror("Error seeking to employee record");
+    // Seek back to the employee record
+    if (lseek(employeeFileDescriptor, offset, SEEK_SET) == -1) {
+        perror("Error seeking to employee record for writing");
+        lock.l_type = F_UNLCK;
+        fcntl(employeeFileDescriptor, F_SETLK, &lock);
         close(employeeFileDescriptor);
-        unlock_employee_critical_section(&semOp);
-        return false;
-    }
-
-    // Lock the employee record
-    struct flock lock = {F_WRLCK, SEEK_SET, offset, sizeof(struct Employee), getpid()};
-    if (fcntl(employeeFileDescriptor, F_SETLKW, &lock) == -1) {
-        perror("Error obtaining write lock on employee record");
-        close(employeeFileDescriptor);
-        unlock_employee_critical_section(&semOp);
         return false;
     }
 
     // Write updated employee record
-    if (write(employeeFileDescriptor, &loggedInEmployee, sizeof(struct Employee)) == -1) {
+    if (write(employeeFileDescriptor, &loggedInEmployee, sizeof(struct Employee)) != sizeof(struct Employee)) {
         perror("Error writing updated employee record");
         lock.l_type = F_UNLCK;
         fcntl(employeeFileDescriptor, F_SETLK, &lock);
         close(employeeFileDescriptor);
-        unlock_employee_critical_section(&semOp);
         return false;
     }
 
-    // Unlock the record and close the file
+    // Unlock the record
     lock.l_type = F_UNLCK;
-    fcntl(employeeFileDescriptor, F_SETLK, &lock);
+    if (fcntl(employeeFileDescriptor, F_SETLK, &lock) == -1) {
+        perror("Error unlocking employee record");
+        close(employeeFileDescriptor);
+        return false;
+    }
+
     close(employeeFileDescriptor);
 
-    // Notify the client of success
+    // Notify client of success
     write(connFD, PASSWORD_CHANGE_SUCCESS, strlen(PASSWORD_CHANGE_SUCCESS));
-    read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read for acknowledgment
+    read(connFD, readBuffer, sizeof(readBuffer)); // Dummy read
 
-    unlock_employee_critical_section(&semOp);
     return true;
 }
+
+
 
 
 #endif
